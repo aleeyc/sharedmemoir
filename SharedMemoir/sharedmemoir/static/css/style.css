@@ -1,0 +1,18 @@
+:root {
+  --sm-green: #24473a;
+  --sm-blue: #2b6cb0;
+  --sm-blue-dark: #22578f;
+  --sm-cream: #f6f2ea;
+}
+body { background: var(--sm-cream); }
+
+.navbar { background: var(--sm-green); }
+.btn-blue { background: var(--sm-blue); color: #fff; }
+.btn-blue:hover { background: var(--sm-blue-dark); color: #fff; }
+.text-green { color: var(--sm-green); }
+.text-blue { color: var(--sm-blue); }
+.step-number {
+  font-family: Georgia, serif;
+  font-size: 1.75rem;
+  color: var(--sm-blue);
+}
