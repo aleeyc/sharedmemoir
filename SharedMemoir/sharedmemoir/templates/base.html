@@ -30,14 +30,14 @@
             {% if user.is_authenticated %}
                 <li class="nav-item"><span class="nav-link">Hi, {{ user.username }}</span></li>
                 <li class="nav-item">
-                <form method="post" action="#" class="d-inline">
+                <form method="post" action="{% url 'logout' %}" class="d-inline">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-link nav-link">Log out</button>
                 </form>
                 </li>
             {% else %}
                 <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Log in</a></li>
-                <li class="nav-item"><a class="btn btn-blue btn-sm ms-lg-2" href="#">Register</a></li>
+                <li class="nav-item"><a class="btn btn-blue btn-sm ms-lg-2" href="{% url 'register' %}">Register</a></li>
             {% endif %}
             </ul>
         </div>
