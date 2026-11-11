@@ -17,19 +17,13 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import include, path
-from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path("", include("shop.urls")),
     path("trips/", include("trips.urls")),
 
-    path(
-        "accounts/login/",
-        auth_views.LoginView.as_view(
-            template_name="registration/login.html"
-        ),
-        name="login"
-    ),
+    # register, login and logout are all in accounts/urls.py
+    path("accounts/", include("accounts.urls")),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
