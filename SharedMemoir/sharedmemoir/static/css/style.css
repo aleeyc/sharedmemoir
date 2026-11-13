@@ -1,18 +1,83 @@
 :root {
-  --sm-green: #24473a;
-  --sm-blue: #2b6cb0;
-  --sm-blue-dark: #22578f;
-  --sm-cream: #f6f2ea;
+  --mm-green: #173e35;
+  --mm-green-hover: #285449;
+  --mm-green-light: #e7ede6;
+  --mm-blue: #345b7d;
+  --mm-blue-hover: #2a4a66;
+  --mm-blue-light: #eaf0f5;
+  --mm-cream: #f7f5ed;
+  --mm-ink: #243a33;
+  --mm-muted: #6e7972;
+  --mm-line: #dedfd5;
 }
-body { background: var(--sm-cream); }
 
-.navbar { background: var(--sm-green); }
-.btn-blue { background: var(--sm-blue); color: #fff; }
-.btn-blue:hover { background: var(--sm-blue-dark); color: #fff; }
-.text-green { color: var(--sm-green); }
-.text-blue { color: var(--sm-blue); }
+body {
+  background: var(--mm-cream);
+  color: var(--mm-ink);
+}
+
+h1, h2, h3, .serif {
+  font-family: Georgia, serif;
+}
+
+/* Navbar */
+.navbar {
+  background: var(--mm-cream);
+  border-bottom: 1px solid var(--mm-line);
+}
+.navbar-brand {
+  font-family: Georgia, serif;
+  letter-spacing: .15em;
+  color: var(--mm-green) !important;
+}
+.navbar .nav-link {
+  color: var(--mm-ink);
+}
+.navbar .nav-link:hover {
+  color: var(--mm-blue);
+}
+
+/* Buttons */
+.btn-green {
+  background: var(--mm-green);
+  color: #fff;
+}
+.btn-green:hover {
+  background: var(--mm-green-hover);
+  color: #fff;
+}
+.btn-blue {
+  background: var(--mm-blue);
+  color: #fff;
+}
+.btn-blue:hover {
+  background: var(--mm-blue-hover);
+  color: #fff;
+}
+
+/* Text helpers */
+.text-green { color: var(--mm-green); }
+.text-blue { color: var(--mm-blue); }
+.text-muted-mm { color: var(--mm-muted); }
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--mm-blue);
+}
+
+/* Cards and sections */
+.card {
+  border: 1px solid var(--mm-line);
+  background: #fff;
+}
 .step-number {
   font-family: Georgia, serif;
   font-size: 1.75rem;
-  color: var(--sm-blue);
+  color: var(--mm-blue);
+}
+.section-soft {
+  background: var(--mm-green-light);
+  border-radius: 1rem;
 }
