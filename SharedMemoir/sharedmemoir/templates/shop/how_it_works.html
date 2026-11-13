@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}How it works · MEMORA{% endblock %}
+
+{% block content %}
+<p class="eyebrow mb-1">From the first photo to the final page</p>
+<h1 class="h2 text-green mb-4">How it works</h1>
+
+<div class="row g-4">
+  {% for title, text in steps %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <span class="step-number">{{ forloop.counter|stringformat:"02d" }}</span>
+          <h2 class="h5 mt-2">{{ title }}</h2>
+          <p class="text-muted-mm mb-0">{{ text }}</p>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="text-center mt-5">
+  <a href="{% url 'shop' %}" class="btn btn-green btn-lg">Explore memory books</a>
+</div>
+{% endblock %}

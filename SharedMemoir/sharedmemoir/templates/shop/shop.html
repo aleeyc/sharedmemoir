@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Shop memory books · MEMORA{% endblock %}
+
+{% block content %}
+<p class="eyebrow mb-1">All memory books</p>
+<h1 class="h2 text-green mb-3">Find a book for your story</h1>
+
+<!-- Occasion filter -->
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a href="{% url 'shop' %}"
+     class="btn btn-outline-secondary btn-sm filter-pill {% if not selected_occasion %}active{% endif %}">All</a>
+  {% for occasion in occasions %}
+    <a href="{% url 'shop' %}?occasion={{ occasion.name|urlencode }}"
+       class="btn btn-outline-secondary btn-sm filter-pill {% if occasion.name == selected_occasion %}active{% endif %}">
+      {{ occasion.name }}
+    </a>
+  {% endfor %}
+</div>
+
+<!-- Cover styles -->
+<div class="row g-4 mb-5">
+  {% for cover in covers %}
+    {% include "shop/_cover_card.html" %}
+  {% empty %}
+    <p class="text-muted-mm">No cover styles match this occasion yet.</p>
+  {% endfor %}
+</div>
+
+<!-- Package prices -->
+<section class="card shadow-sm p-4">
+  <h2 class="h4 text-green">Choose your package</h2>
+  <p class="text-muted-mm">Every package includes studio layout, PDF delivery and one free revision.
+     Print + Digital adds a hardcover book, a gift box and shipping.</p>
+  <div class="table-responsive">
+    <table class="table price-table mb-0">
+      <thead>
+        <tr><th>Package</th><th>Photos</th><th class="text-end">Digital</th><th class="text-end">Print + Digital</th></tr>
+      </thead>
+      <tbody>
+        {% for tier in tiers %}
+          <tr>
+            <td class="fw-semibold">{{ tier.name }}</td>
+            <td>{{ tier.min_photos }}–{{ tier.max_photos }}</td>
+            <td class="text-end">S${{ tier.digital_price|floatformat:0 }}</td>
+            <td class="text-end">S${{ tier.print_price|floatformat:0 }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="small text-muted-mm mt-2 mb-0">All prices are in Singapore dollars (SGD).</p>
+</section>
+{% endblock %}
