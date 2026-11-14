@@ -78,6 +78,11 @@ class Order(models.Model):
         return self.status == self.Status.WAITING
 
     @property
+    def can_edit_photos(self):
+        """Photos can be added, captioned and removed until the customer submits them."""
+        return self.status == self.Status.WAITING
+
+    @property
     def has_review(self):
         return hasattr(self, "review")
 
@@ -141,3 +146,23 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.order.number}: {self.rating} stars"
+
+
+def photo_upload_path(photo, filename):
+    """Keep each order's photos in its own folder, e.g. media/orders/3/beach.jpg"""
+    return f"orders/{photo.order_id}/{filename}"
+
+
+class OrderPhoto(models.Model):
+    """A photo the customer uploads for their memory book, with an optional caption."""
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="photos")
+    image = models.ImageField(upload_to=photo_upload_path)
+    caption = models.CharField(max_length=200, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["uploaded_at", "id"]
+
+    def __str__(self):
+        return f"{self.order.number}: photo {self.pk}"

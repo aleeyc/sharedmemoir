@@ -22,7 +22,15 @@
         <span class="badge status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
       </div>
 
-      <div class="col-md-4 text-md-end">
+      <div class="col-md-4 d-flex flex-column align-items-md-end gap-2">
+        {% if order.can_edit_photos %}
+          <a href="{% url 'order_photos' order.pk %}" class="btn btn-green btn-sm">
+            Upload photos ({{ order.photo_count }}/{{ order.tier.max_photos }})
+          </a>
+        {% elif order.status != "cancelled" %}
+          <a href="{% url 'order_photos' order.pk %}" class="btn btn-outline-dark btn-sm">View photos</a>
+        {% endif %}
+
         {% if order.can_cancel %}
           <a href="{% url 'cancel_order' order.pk %}" class="btn btn-outline-danger btn-sm">Cancel order</a>
         {% endif %}
@@ -30,8 +38,10 @@
         {% if order.can_review %}
           <a href="{% url 'review_order' order.pk %}" class="btn btn-green btn-sm">Write a review</a>
         {% elif order.has_review %}
-          <div class="rating-stars">{{ order.review.stars }}</div>
-          <div class="small text-muted-mm">You reviewed this book</div>
+          <div class="text-md-end">
+            <div class="rating-stars">{{ order.review.stars }}</div>
+            <div class="small text-muted-mm">You reviewed this book</div>
+          </div>
         {% endif %}
       </div>
     </div>

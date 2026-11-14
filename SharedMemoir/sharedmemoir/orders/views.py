@@ -1,12 +1,14 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 from shop.bag import clear_bag, get_bag
 
-from .forms import CheckoutForm, ReviewForm
-from .models import Order
+from .forms import CheckoutForm, PhotoUploadForm, ReviewForm
+from .models import Order, OrderPhoto
 from .services import OutOfStock, cancel_and_refund, place_order
 
 
@@ -47,7 +49,11 @@ def order_success(request, pk):
 
 @login_required
 def my_orders(request):
-    orders = request.user.orders.select_related("cover", "tier", "review")
+    orders = (
+        request.user.orders.select_related("cover", "tier", "review")
+        .annotate(photo_count=Count("photos"))
+        .order_by("-created_at")  # Django ignores the model's default ordering once we annotate
+    )
     return render(request, "orders/my_orders.html", {"orders": orders})
 
 
@@ -87,3 +93,88 @@ def review_order(request, pk):
         return redirect("my_orders")
 
     return render(request, "orders/review_form.html", {"form": form, "order": order})
+
+
+@login_required
+def order_photos(request, pk):
+    """Upload photos (while the order is waiting for them) or view the submitted photos."""
+    order = get_object_or_404(Order, pk=pk, customer=request.user)
+    if order.status == Order.Status.CANCELLED:
+        messages.info(request, f"{order.number} was cancelled.")
+        return redirect("my_orders")
+
+    form = PhotoUploadForm(order=order)
+    if request.method == "POST":
+        if not order.can_edit_photos:
+            messages.error(request, "Your photos have already been submitted.")
+            return redirect("order_photos", pk=order.pk)
+
+        form = PhotoUploadForm(request.POST, request.FILES, order=order)
+        if form.is_valid():
+            images = form.cleaned_data["images"]
+            for image in images:
+                order.photos.create(image=image)
+            messages.success(request, f"{len(images)} photo{'s' if len(images) > 1 else ''} uploaded.")
+            return redirect("order_photos", pk=order.pk)
+
+    photos = list(order.photos.all())
+    tier = order.tier
+    return render(request, "orders/photos.html", {
+        "order": order,
+        "form": form,
+        "photos": photos,
+        "count": len(photos),
+        "photos_needed": max(0, tier.min_photos - len(photos)),
+        "ready": tier.min_photos <= len(photos) <= tier.max_photos,
+    })
+
+
+@login_required
+@require_POST
+def save_caption(request, pk, photo_id):
+    order = get_object_or_404(Order, pk=pk, customer=request.user)
+    photo = get_object_or_404(OrderPhoto, pk=photo_id, order=order)
+    if order.can_edit_photos:
+        photo.caption = request.POST.get("caption", "").strip()[:200]  # same limit as the model field
+        photo.save(update_fields=["caption"])
+        messages.success(request, "Caption saved.")
+    else:
+        messages.error(request, "Your photos have already been submitted.")
+    return redirect("order_photos", pk=order.pk)
+
+
+@login_required
+@require_POST
+def delete_photo(request, pk, photo_id):
+    order = get_object_or_404(Order, pk=pk, customer=request.user)
+    photo = get_object_or_404(OrderPhoto, pk=photo_id, order=order)
+    if order.can_edit_photos:
+        photo.image.delete(save=False)  # remove the file from the media folder too
+        photo.delete()
+        messages.info(request, "Photo removed.")
+    else:
+        messages.error(request, "Your photos have already been submitted.")
+    return redirect("order_photos", pk=order.pk)
+
+
+@login_required
+@require_POST
+def submit_photos(request, pk):
+    """Send the photos to the studio. After this the customer can no longer change them or cancel."""
+    order = get_object_or_404(Order, pk=pk, customer=request.user)
+    if not order.can_edit_photos:
+        messages.error(request, "Your photos have already been submitted.")
+        return redirect("order_photos", pk=order.pk)
+
+    count = order.photos.count()
+    tier = order.tier
+    if not (tier.min_photos <= count <= tier.max_photos):
+        messages.error(request, f"Your {tier.name} package needs {tier.min_photos}–{tier.max_photos} photos. "
+                                f"You have uploaded {count}.")
+        return redirect("order_photos", pk=order.pk)
+
+    order.status = Order.Status.SUBMITTED
+    order.save(update_fields=["status", "updated_at"])
+    order.add_event(f"Customer submitted {count} photos. Production can begin.", actor=request.user)
+    messages.success(request, "Your photos have been sent to our studio. We'll start designing your book.")
+    return redirect("order_photos", pk=order.pk)

@@ -45,3 +45,56 @@ class ReviewForm(BootstrapFormMixin, forms.ModelForm):
                 "rows": 4, "placeholder": "What did you love? What could we do better?",
             }),
         }
+
+
+MAX_PHOTO_SIZE = 10 * 1024 * 1024  # 10 MB
+
+
+class MultipleFileInput(forms.ClearableFileInput):
+    """A file input that lets the customer select several files at once."""
+    allow_multiple_selected = True
+
+
+class MultipleImageField(forms.ImageField):
+    """Checks every selected file is a real image and returns them as a list.
+    (This is the pattern from the Django documentation on uploading multiple files.)"""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput(attrs={"accept": "image/*", "multiple": True}))
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        single_file_clean = super().clean
+        if isinstance(data, (list, tuple)):
+            return [single_file_clean(file, initial) for file in data]
+        return [single_file_clean(data, initial)]
+
+
+class PhotoUploadForm(BootstrapFormMixin, forms.Form):
+    images = MultipleImageField(
+        label="Choose photos",
+        help_text="JPG or PNG, up to 10 MB each. You can select several photos at once.",
+    )
+
+    def __init__(self, *args, order=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.order = order
+
+    def clean_images(self):
+        images = self.cleaned_data["images"]
+        if not images:
+            raise forms.ValidationError("Choose at least one photo.")
+
+        for image in images:
+            if image.size > MAX_PHOTO_SIZE:
+                raise forms.ValidationError(f"{image.name} is larger than 10 MB.")
+
+        # The package decides the maximum number of photos.
+        tier = self.order.tier
+        space_left = tier.max_photos - self.order.photos.count()
+        if len(images) > space_left:
+            raise forms.ValidationError(
+                f"Your {tier.name} package holds up to {tier.max_photos} photos. "
+                f"You can add {space_left} more."
+            )
+        return images

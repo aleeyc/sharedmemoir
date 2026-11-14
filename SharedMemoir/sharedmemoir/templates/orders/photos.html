@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Photos · {{ order.number }} · MEMORA{% endblock %}
+
+{% block content %}
+<p class="eyebrow mb-1">{{ order.number }} · {{ order.tier.name }} package</p>
+<h1 class="h2 text-green mb-1">Photos for "{{ order.title }}"</h1>
+<p class="text-muted-mm mb-4">
+  Your package needs {{ order.tier.min_photos }}–{{ order.tier.max_photos }} photos.
+  Add a short caption to tell our studio the story behind each one.
+</p>
+
+<div class="row g-4">
+  <!-- Left: progress, upload form and submit button -->
+  <div class="col-lg-4">
+    <div class="card shadow-sm p-4 sticky-summary">
+      <h2 class="h5 text-green">{{ count }} of {{ order.tier.min_photos }}–{{ order.tier.max_photos }} photos</h2>
+      <div class="progress mb-3" role="progressbar" aria-label="Photos uploaded">
+        <div class="progress-bar photo-progress" style="width: {% widthratio count order.tier.max_photos 100 %}%"></div>
+      </div>
+
+      {% if order.can_edit_photos %}
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+          {% include "_field.html" with field=form.images %}
+          <button type="submit" class="btn btn-blue w-100">Upload</button>
+        </form>
+        <hr>
+        {% if ready %}
+          <form method="post" action="{% url 'submit_photos' order.pk %}">
+            {% csrf_token %}
+            <p class="small">
+              When you submit, our studio starts designing your book.
+              After that you can't change your photos or cancel the order.
+            </p>
+            <button type="submit" class="btn btn-green w-100">Submit {{ count }} photos to the studio</button>
+          </form>
+        {% else %}
+          <p class="small text-muted-mm mb-0">
+            Upload {{ photos_needed }} more photo{{ photos_needed|pluralize }} to submit them to our studio.
+          </p>
+        {% endif %}
+      {% else %}
+        <p class="small mb-0">
+          Your photos have been submitted.
+          <span class="badge status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
+        </p>
+      {% endif %}
+
+      <a href="{% url 'my_orders' %}" class="btn btn-link w-100 mt-2">Back to my orders</a>
+    </div>
+  </div>
+
+  <!-- Right: the uploaded photos -->
+  <div class="col-lg-8">
+    <div class="row g-3">
+      {% for photo in photos %}
+        <div class="col-6 col-md-4">
+          <div class="card h-100 p-2">
+            <img src="{{ photo.image.url }}" class="photo-thumb" alt="Photo {{ forloop.counter }}">
+            {% if order.can_edit_photos %}
+              <form method="post" action="{% url 'save_caption' order.pk photo.pk %}" class="mt-2">
+                {% csrf_token %}
+                <input type="text" name="caption" value="{{ photo.caption }}" maxlength="200"
+                       class="form-control form-control-sm" placeholder="The story behind this photo">
+                <button type="submit" class="btn btn-link btn-sm px-0">Save caption</button>
+              </form>
+              <form method="post" action="{% url 'delete_photo' order.pk photo.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-link btn-sm text-danger px-0">Remove</button>
+              </form>
+            {% else %}
+              <p class="small mt-2 mb-0">{{ photo.caption|default:"No caption" }}</p>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <div class="col-12">
+          <div class="card p-5 text-center text-muted-mm">No photos yet. Choose some photos to get started.</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

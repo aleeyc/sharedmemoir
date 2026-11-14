@@ -17,7 +17,7 @@
           Our studio begins designing <em>{{ order.title }}</em> as soon as you submit them.
         </p>
       </div>
-      <a href="#" class="btn btn-green">Upload my photos</a>
+      <a href="{% url 'order_photos' order.pk %}" class="btn btn-green">Upload my photos</a>
     </div>
   </div>
 </div>
