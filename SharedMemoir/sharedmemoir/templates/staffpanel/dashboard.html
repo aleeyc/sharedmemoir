@@ -92,7 +92,7 @@
 
     <!-- Low stocks -->
     <section class="card shadow-sm p-4">
-      <h2 class="h5 text-green mb-3">Gift boxes to reorder</h2>
+      <h2 class="h5 text-green mb-3"><a href="{% url 'staff_catalogue' %}#gift-boxes" class="text-reset">Gift boxes to reorder</a></h2>
       {% for box in low_stock %}
         <div class="d-flex justify-content-between small py-1 border-bottom">
           <span>{{ box }}</span>

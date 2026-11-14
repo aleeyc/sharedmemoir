@@ -1,0 +1,88 @@
+{% extends "staffpanel/base_staff.html" %}
+
+{% block staff_title %}Catalogue{% endblock %}
+{% block staff_heading %}Catalogue &amp; inventory{% endblock %}
+
+{% block staff_content %}
+<!-- Cover styles -->
+<section class="card shadow-sm p-4 mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h5 text-green mb-0">Cover styles</h2>
+    <a href="{% url 'staff_cover_create' %}" class="btn btn-green btn-sm">Add cover style</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead><tr><th></th><th>Name</th><th>Occasion</th><th>Orders</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for cover in covers %}
+          <tr class="{% if not cover.is_active %}text-muted-mm{% endif %}">
+            <td style="width: 40px;"><span class="cover-swatch" style="--book-color: {{ cover.colour }}; width: 28px;"></span></td>
+            <td><span class="fw-semibold">{{ cover.name }}</span><br><span class="small">{{ cover.subtitle }}</span></td>
+            <td>{{ cover.occasion.name }}</td>
+            <td>{{ cover.order_count }}</td>
+            <td>{% if cover.is_active %}<span class="badge text-bg-success">In shop</span>{% else %}<span class="badge text-bg-secondary">Hidden</span>{% endif %}</td>
+            <td class="text-end">
+              <a href="{% url 'staff_cover_edit' cover.pk %}" class="btn btn-outline-dark btn-sm">Edit</a>
+              <form method="post" action="{% url 'staff_cover_toggle' cover.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-secondary btn-sm">{% if cover.is_active %}Hide{% else %}Show{% endif %}</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Packages -->
+<section class="card shadow-sm p-4 mb-4" id="packages">
+  <h2 class="h5 text-green mb-3">Photo packages</h2>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead><tr><th>Package</th><th>Photos</th><th class="text-end">Digital</th><th class="text-end">Print + Digital</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for tier in tiers %}
+          <tr class="{% if not tier.is_active %}text-muted-mm{% endif %}">
+            <td class="fw-semibold">{{ tier.name }}</td>
+            <td>{{ tier.min_photos }}–{{ tier.max_photos }}</td>
+            <td class="text-end">S${{ tier.digital_price|floatformat:2 }}</td>
+            <td class="text-end">S${{ tier.print_price|floatformat:2 }}</td>
+            <td>{% if tier.is_active %}<span class="badge text-bg-success">Offered</span>{% else %}<span class="badge text-bg-secondary">Not offered</span>{% endif %}</td>
+            <td class="text-end"><a href="{% url 'staff_tier_edit' tier.pk %}" class="btn btn-outline-dark btn-sm">Edit</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Gift-box inventory -->
+<section class="card shadow-sm p-4" id="gift-boxes">
+  <h2 class="h5 text-green mb-1">Gift-box inventory</h2>
+  <p class="small text-muted-mm">Each print order uses one gift box. Highlighted rows are at or below their reorder level. Enter a positive number to restock or a negative one to remove stock.</p>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead><tr><th>Gift box</th><th>In stock</th><th>Adjust stock</th></tr></thead>
+      <tbody>
+        {% for box in gift_boxes %}
+          <tr class="{% if box.is_low_stock %}table-warning{% endif %}">
+            <td>{{ box }}</td>
+            <td class="fw-semibold">{{ box.stock }}{% if box.stock == 0 %} <span class="badge text-bg-danger">Sold out</span>{% endif %}</td>
+            <td>
+              <form method="post" action="{% url 'staff_giftbox_stock' box.pk %}" class="d-flex flex-wrap gap-2 align-items-center">
+                {% csrf_token %}
+                <label class="small" for="change-{{ box.pk }}">Change</label>
+                <input type="number" id="change-{{ box.pk }}" name="change" value="0" min="-500" max="500" class="form-control form-control-sm stock-input">
+                <label class="small" for="reorder-{{ box.pk }}">Reorder at</label>
+                <input type="number" id="reorder-{{ box.pk }}" name="reorder_level" value="{{ box.reorder_level }}" min="0" max="500" class="form-control form-control-sm stock-input">
+                <button type="submit" class="btn btn-green btn-sm">Save</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

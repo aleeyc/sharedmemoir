@@ -1,7 +1,9 @@
 from django import forms
 from django.core.validators import FileExtensionValidator, RegexValidator
+from django.utils.text import slugify
 
 from accounts.forms import BootstrapFormMixin
+from shop.models import CoverStyle, PackageTier
 
 MAX_PDF_BYTES = 50 * 1024 * 1024 #50 megabytes
 
@@ -42,3 +44,62 @@ class ShipForm(BootstrapFormMixin, forms.Form):
         validators=[RegexValidator(r"^[A-Za-z0-9-]{6,30}$",
                                    "Enter a valid tracking number: 6–30 letters, digits or dashes.")],
     )
+
+class CoverStyleForm(BootstrapFormMixin, forms.ModelForm):
+    colour = forms.CharField(
+        max_length=7,
+        validators=[RegexValidator(r"^#[0-9a-fA-F]{6}$", "Choose a colour.")],
+        widget=forms.TextInput(attrs={"type": "color"}),
+        help_text="The colour of this cover in the shop's previews.",
+    )
+
+    class Meta:
+        model = CoverStyle
+        fields = ["name", "slug", "subtitle", "description", "colour", "occasion", "is_active"]
+        labels = {"is_active": "Show this cover style in the shop"}
+        help_texts = {"slug": "Used in the web address, e.g. /configure/wanderlust/. Leave blank to create it from the name."}
+        widgets = {"description": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["slug"].required = False
+        # Bootstrap's special class for colour pickers
+        self.fields["colour"].widget.attrs["class"] = "form-control form-control-color"
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get("slug") and cleaned.get("name"):
+            cleaned["slug"] = slugify(cleaned["name"])  # "Our Vows" -> "our-vows"
+        return cleaned
+
+
+class PackageTierForm(BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = PackageTier
+        fields = ["name", "min_photos", "max_photos", "digital_price", "print_price", "is_active"]
+        labels = {
+            "digital_price": "Digital price (S$)",
+            "print_price": "Print + Digital price (S$)",
+            "is_active": "Offer this package to customers",
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        low, high = cleaned.get("min_photos"), cleaned.get("max_photos")
+        if low is not None and high is not None:
+            if low < 1:
+                self.add_error("min_photos", "A package needs at least 1 photo.")
+            if high < low:
+                self.add_error("max_photos", "The maximum must be at least the minimum.")
+
+        digital, printed = cleaned.get("digital_price"), cleaned.get("print_price")
+        if digital is not None and digital <= 0:
+            self.add_error("digital_price", "The price must be more than S$0.")
+        if digital is not None and printed is not None and printed < digital:
+            self.add_error("print_price", "Print + Digital can't cost less than Digital only.")
+        return cleaned
+
+
+class StockAdjustForm(forms.Form):
+    change = forms.IntegerField(min_value=-500, max_value=500, initial=0)
+    reorder_level = forms.IntegerField(min_value=0, max_value=500)

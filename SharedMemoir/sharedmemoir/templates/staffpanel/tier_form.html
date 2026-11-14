@@ -1,0 +1,18 @@
+{% extends "staffpanel/base_staff.html" %}
+
+{% block staff_title %}Edit {{ tier.name }}{% endblock %}
+{% block staff_heading %}Edit package: {{ tier.name }}{% endblock %}
+
+{% block staff_content %}
+<a href="{% url 'staff_catalogue' %}#packages" class="small">&larr; Back to catalogue</a>
+<div class="row mt-2">
+  <div class="col-lg-6">
+    <form method="post" class="card shadow-sm p-4" novalidate>
+      {% csrf_token %}
+      {% include "_form_fields.html" %}
+      <p class="small text-muted-mm">Price changes apply to new orders only.</p>
+      <button type="submit" class="btn btn-green">Save changes</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

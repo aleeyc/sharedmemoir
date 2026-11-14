@@ -1,0 +1,17 @@
+{% extends "staffpanel/base_staff.html" %}
+
+{% block staff_title %}{% if cover %}Edit {{ cover.name }}{% else %}Add cover style{% endif %}{% endblock %}
+{% block staff_heading %}{% if cover %}Edit cover style{% else %}Add cover style{% endif %}{% endblock %}
+
+{% block staff_content %}
+<a href="{% url 'staff_catalogue' %}" class="small">&larr; Back to catalogue</a>
+<div class="row mt-2">
+  <div class="col-lg-7">
+    <form method="post" class="card shadow-sm p-4" novalidate>
+      {% csrf_token %}
+      {% include "_form_fields.html" %}
+      <button type="submit" class="btn btn-green">{% if cover %}Save changes{% else %}Add cover style{% endif %}</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

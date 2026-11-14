@@ -4,13 +4,14 @@ from django.core.paginator import Paginator
 from django.db.models import Count, F, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+from django.urls import reverse
 
 from orders.models import Order
 from orders.services import TransitionError, can_transition, deliver_pdf, transition
-from shop.models import GiftBox
+from shop.models import CoverStyle, GiftBox, PackageTier
 
 from .decorators import staff_required
-from .forms import DeliverPdfForm, ShipForm
+from .forms import CoverStyleForm, DeliverPdfForm, PackageTierForm, ShipForm, StockAdjustForm
     
 STUDIO_ACTION_STATUSES = [
     Order.Status.SUBMITTED,
@@ -168,3 +169,68 @@ def order_ship(request, pk):
         return redirect("staff_order_detail", pk=pk)
     return render(request, "staffpanel/order_detail.html",
                   _order_context(order, request.user, ship_form=form))
+
+@staff_required
+def catalogue(request):
+    return render(request, "staffpanel/catalogue.html", {
+        "covers": CoverStyle.objects.select_related("occasion")
+                  .annotate(order_count=Count("order")).order_by("name"),
+        "tiers": PackageTier.objects.all(),
+        "gift_boxes": GiftBox.objects.all(),
+    })
+
+
+@staff_required
+def cover_form(request, pk=None):
+    """Add a new cover style or edit an existing one."""
+    cover = get_object_or_404(CoverStyle, pk=pk) if pk else None
+    form = CoverStyleForm(request.POST or None, instance=cover)
+    if request.method == "POST" and form.is_valid():
+        saved = form.save()
+        messages.success(request, f"Cover style \"{saved.name}\" {'updated' if cover else 'added'}.")
+        return redirect("staff_catalogue")
+    return render(request, "staffpanel/cover_form.html", {"form": form, "cover": cover})
+
+
+@staff_required
+@require_POST
+def cover_toggle(request, pk):
+    cover = get_object_or_404(CoverStyle, pk=pk)
+    cover.is_active = not cover.is_active
+    cover.save(update_fields=["is_active"])
+    state = "is now shown in the shop" if cover.is_active else "is now hidden from the shop"
+    messages.success(request, f"\"{cover.name}\" {state}.")
+    return redirect("staff_catalogue")
+
+
+@staff_required
+def tier_form(request, pk):
+    tier = get_object_or_404(PackageTier, pk=pk)
+    form = PackageTierForm(request.POST or None, instance=tier)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, f"Package \"{tier.name}\" updated. Existing orders keep the price they paid.")
+        return redirect(reverse("staff_catalogue") + "#packages")
+    return render(request, "staffpanel/tier_form.html", {"form": form, "tier": tier})
+
+
+@staff_required
+@require_POST
+def giftbox_stock(request, pk):
+    box = get_object_or_404(GiftBox, pk=pk)
+    form = StockAdjustForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, f"{box}: enter whole numbers (change between −500 and 500, reorder level 0–500).")
+        return redirect(reverse("staff_catalogue") + "#gift-boxes")
+
+    change = form.cleaned_data["change"]
+    updated = GiftBox.objects.filter(pk=pk, stock__gte=-change).update(
+        stock=F("stock") + change,
+        reorder_level=form.cleaned_data["reorder_level"],
+    )
+    if updated:
+        box.refresh_from_db()
+        messages.success(request, f"{box}: stock is now {box.stock}.")
+    else:
+        messages.error(request, f"{box} only has {box.stock} in stock, so you can't remove {-change}.")
+    return redirect(reverse("staff_catalogue") + "#gift-boxes")

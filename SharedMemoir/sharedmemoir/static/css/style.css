@@ -175,3 +175,5 @@ h1, h2, h3, .serif {
   border-radius: .5rem;
   background: #fff;
 }
+
+.stock-input { width: 5.5rem; }
