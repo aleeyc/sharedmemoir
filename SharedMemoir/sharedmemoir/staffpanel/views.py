@@ -1,12 +1,16 @@
+from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import Count, F, Q, Sum
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from orders.models import Order
+from orders.services import TransitionError, can_transition, deliver_pdf, transition
 from shop.models import GiftBox
 
 from .decorators import staff_required
+from .forms import DeliverPdfForm, ShipForm
     
 STUDIO_ACTION_STATUSES = [
     Order.Status.SUBMITTED,
@@ -14,6 +18,15 @@ STUDIO_ACTION_STATUSES = [
     Order.Status.REVISION,
     Order.Status.PRINTING,
 ]
+
+# Studio view at different status points
+WAITING_ON_CUSTOMER = {
+    Order.Status.WAITING: "Waiting for the customer to upload and submit photos.",
+    Order.Status.DELIVERED: "Waiting for the customer to approve the PDF or request their free revision.",
+    Order.Status.SHIPPED: "Waiting for the customer to confirm they received the book.",
+    Order.Status.COMPLETED: "This order is complete.",
+    Order.Status.CANCELLED: "The customer cancelled this order and was refunded.",
+}
 
 
 @staff_required
@@ -82,14 +95,76 @@ def order_list(request):
     })
 
 
+def _order_context(order, user, deliver_form=None, ship_form=None):
+    return {
+        "order": order,
+        "photos": order.photos.all(),
+        "events": order.events.select_related("actor"),
+        "versions": order.versions.select_related("uploaded_by"),
+        "can_start": can_transition(order, "start", user),
+        "can_deliver": can_transition(order, "deliver", user),
+        "can_ship": can_transition(order, "ship", user),
+        "deliver_form": deliver_form or DeliverPdfForm(),
+        "ship_form": ship_form or ShipForm(),
+        "waiting_message": WAITING_ON_CUSTOMER.get(order.status, ""),
+    }
+
+
 @staff_required
 def order_detail(request, pk):
     order = get_object_or_404(
         Order.objects.select_related("customer", "cover", "tier", "gift_box", "recommended_tier"),
         pk=pk,
     )
-    return render(request, "staffpanel/order_detail.html", {
-        "order": order,
-        "photos": order.photos.all(),
-        "events": order.events.select_related("actor"),
-    })
+    return render(request, "staffpanel/order_detail.html", _order_context(order, request.user))
+
+
+@staff_required
+@require_POST
+def order_start(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    try:
+        transition(order, "start", request.user, "Studio started designing the memory book.")
+    except TransitionError as error:
+        messages.error(request, str(error))
+    else:
+        messages.success(request, f"Production started for {order.number}.")
+    return redirect("staff_order_detail", pk=pk)
+
+
+@staff_required
+@require_POST
+def order_deliver(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    form = DeliverPdfForm(request.POST, request.FILES)
+    if form.is_valid():
+        try:
+            deliver_pdf(order, request.user, form.cleaned_data["pdf"], form.cleaned_data["note"])
+        except TransitionError as error:
+            messages.error(request, str(error))
+        else:
+            messages.success(request, f"PDF delivered to the customer for {order.number}.")
+        return redirect("staff_order_detail", pk=pk)
+    return render(request, "staffpanel/order_detail.html",
+                  _order_context(order, request.user, deliver_form=form))
+
+
+@staff_required
+@require_POST
+def order_ship(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    form = ShipForm(request.POST)
+    if form.is_valid():
+        courier = form.cleaned_data["courier"]
+        tracking = form.cleaned_data["tracking_number"]
+        try:
+            transition(order, "ship", request.user,
+                       f"Shipped with {courier}, tracking number {tracking}.",
+                       courier=courier, tracking_number=tracking)
+        except TransitionError as error:
+            messages.error(request, str(error))
+        else:
+            messages.success(request, f"{order.number} marked as shipped.")
+        return redirect("staff_order_detail", pk=pk)
+    return render(request, "staffpanel/order_detail.html",
+                  _order_context(order, request.user, ship_form=form))

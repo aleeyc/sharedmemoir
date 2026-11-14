@@ -62,3 +62,62 @@ def cancel_and_refund(order, user):
         GiftBox.objects.filter(pk=order.gift_box_id).update(stock=F("stock") + 1)
     order.add_event("Order cancelled by the customer. Full refund issued (demo).", actor=user)
     return True
+
+class TransitionError(Exception):
+    """Raised when someone tries an action the order's current status doesn't allow."""
+
+
+S = Order.Status
+
+# The production workflow after photos are submitted
+TRANSITIONS = {
+    "start":   ({S.SUBMITTED}, "staff", S.PRODUCING),
+    "deliver": ({S.PRODUCING, S.REVISION}, "staff", S.DELIVERED),
+    "revise":  ({S.DELIVERED}, "customer", S.REVISION),
+    "accept":  ({S.DELIVERED}, "customer", None),
+    "ship":    ({S.PRINTING}, "staff", S.SHIPPED),
+    "receive": ({S.SHIPPED}, "customer", S.COMPLETED),
+}
+
+
+def can_transition(order, event, user):
+    """True if this user may perform this event on this order right now."""
+    allowed_statuses, role, _next_status = TRANSITIONS[event]
+    if order.status not in allowed_statuses:
+        return False
+    if event == "revise" and order.revision_used:
+        return False  # only one free revision
+    if role == "customer":
+        return order.customer_id == user.id
+    return user.is_staff
+
+
+@transaction.atomic
+def transition(order, event, user, message, **changes):
+    """Check the rules, move the order to its next status, save any extra field changes
+    (e.g. courier and tracking number) and record the step in the timeline."""
+    if not can_transition(order, event, user):
+        raise TransitionError("That action isn't available for this order right now.")
+
+    next_status = TRANSITIONS[event][2]
+    if event == "accept":
+        next_status = S.PRINTING if order.is_print else S.COMPLETED
+    if event == "revise":
+        order.revision_used = True
+
+    for field, value in changes.items():
+        setattr(order, field, value)
+    order.status = next_status
+    order.save()
+    order.add_event(message, actor=user)
+    return order
+
+
+@transaction.atomic
+def deliver_pdf(order, user, pdf, note=""):
+    if not can_transition(order, "deliver", user):
+        raise TransitionError("A PDF can only be delivered while the order is in production or revision.")
+    number = order.versions.count() + 1
+    order.versions.create(number=number, pdf=pdf, note=note, uploaded_by=user)
+    label = "first version" if number == 1 else f"revised version (v{number})"
+    return transition(order, "deliver", user, f"Studio delivered the {label} of the PDF.")

@@ -58,14 +58,64 @@
   </div>
 
   <div class="col-lg-4">
-    <!-- Status and actions -->
+    <!-- Status and studio actions -->
     <section class="card shadow-sm p-4 mb-4">
-      <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="h5 text-green mb-0">Status</h2>
         <span class="badge status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
       </div>
-      <p class="small text-muted-mm mb-0">Studio actions for this order will appear here.</p>
+
+      {% if can_start %}
+        <p class="small">The customer has submitted their photos. Start production when the studio begins designing.</p>
+        <form method="post" action="{% url 'staff_order_start' order.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-green w-100">Start production</button>
+        </form>
+
+      {% elif can_deliver %}
+        {% if order.status == "revision" %}
+          <div class="recommend-box small mb-3">
+            <strong>Revision requested:</strong><br>{{ order.revision_request|default:"No details given."|linebreaksbr }}
+          </div>
+        {% endif %}
+        <form method="post" action="{% url 'staff_order_deliver' order.pk %}" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+          {% include "_field.html" with field=deliver_form.pdf %}
+          {% include "_field.html" with field=deliver_form.note %}
+          <button type="submit" class="btn btn-green w-100">
+            {% if order.status == "revision" %}Deliver revised PDF{% else %}Deliver PDF to customer{% endif %}
+          </button>
+        </form>
+
+      {% elif can_ship %}
+        <p class="small">The customer approved the design. Print and pack the book in its {{ order.gift_box }} gift box, then enter the shipping details.</p>
+        <form method="post" action="{% url 'staff_order_ship' order.pk %}" novalidate>
+          {% csrf_token %}
+          {% include "_field.html" with field=ship_form.courier %}
+          {% include "_field.html" with field=ship_form.tracking_number %}
+          <button type="submit" class="btn btn-green w-100">Mark as shipped</button>
+        </form>
+
+      {% else %}
+        <p class="small text-muted-mm mb-0">{{ waiting_message }}</p>
+      {% endif %}
     </section>
+
+    <!-- PDF versions -->
+    {% if versions %}
+      <section class="card shadow-sm p-4 mb-4">
+        <h2 class="h5 text-green mb-3">Delivered PDFs</h2>
+        {% for version in versions %}
+          <div class="d-flex justify-content-between align-items-start small py-2 {% if not forloop.last %}border-bottom{% endif %}">
+            <div>
+              <span class="fw-semibold">{{ version.label }}</span>
+              <div class="text-muted-mm">{{ version.created_at|date:"j M Y, H:i" }}{% if version.note %} · {{ version.note }}{% endif %}</div>
+            </div>
+            <a href="{{ version.pdf.url }}" target="_blank" rel="noopener">Open</a>
+          </div>
+        {% endfor %}
+      </section>
+    {% endif %}
 
     <!-- Customer and payment -->
     <section class="card shadow-sm p-4 mb-4">

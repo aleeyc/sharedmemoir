@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.core.validators import FileExtensionValidator
 
 from shop.models import FORMAT_CHOICES, FORMAT_PRINT, CoverStyle, GiftBox, PackageTier, Tag
 
@@ -42,6 +43,7 @@ class Order(models.Model):
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.WAITING)
     revision_used = models.BooleanField(default=False)
+    revision_request = models.TextField(blank=True)
     paid_at = models.DateTimeField()
 
     # Contact and shipping info
@@ -166,3 +168,30 @@ class OrderPhoto(models.Model):
 
     def __str__(self):
         return f"{self.order.number}: photo {self.pk}"
+
+def book_upload_path(version, filename):
+    """Keep each order's PDFs together, e.g. media/books/3/v2-our-trip.pdf"""
+    return f"books/{version.order_id}/v{version.number}-{filename}"
+
+
+class BookVersion(models.Model):
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="versions")
+    number = models.PositiveSmallIntegerField()
+    pdf = models.FileField(upload_to=book_upload_path, validators=[FileExtensionValidator(["pdf"])])
+    note = models.CharField(max_length=200, blank=True)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-number"]
+        constraints = [
+            models.UniqueConstraint(fields=["order", "number"], name="unique_version_per_order"),
+        ]
+
+    @property
+    def label(self):
+        return "First version" if self.number == 1 else f"Revision {self.number - 1}"
+
+    def __str__(self):
+        return f"{self.order.number} v{self.number}"
