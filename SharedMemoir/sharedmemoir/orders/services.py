@@ -30,6 +30,8 @@ def place_order(user, bag, data):
         notes=bag["notes"],
         group_size=bag["group_size"],
         event_days=bag["event_days"],
+        predicted_photos=bag.get("predicted_photos"),
+        recommended_tier=bag.get("recommended_tier"),
         amount=bag["price"],
         paid_at=timezone.now(),
         contact_name=data["contact_name"],

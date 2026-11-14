@@ -8,6 +8,9 @@
 
 <form method="post" novalidate>
   {% csrf_token %}
+  <!-- Pressing Enter uses the first submit button of a form. This hidden one keeps
+       Enter meaning "Add to bag" instead of "Recommend a package for me". -->
+  <button type="submit" class="d-none" tabindex="-1" aria-hidden="true"></button>
   <div class="row g-4">
     <div class="col-lg-8">
 
@@ -34,14 +37,8 @@
         {% include "_choice_list.html" with field=form.format %}
       </section>
 
-      <section class="card shadow-sm p-4 mb-4">
-        <h2 class="h5 text-green mb-1"><span class="step-number fs-5 me-2">03</span>Choose your photo package</h2>
-        <p class="small text-muted-mm">You will upload a photo count within this range after checkout.</p>
-        {% include "_choice_list.html" with field=form.tier %}
-      </section>
-
-      <section class="card shadow-sm p-4 mb-4">
-        <h2 class="h5 text-green mb-3"><span class="step-number fs-5 me-2">04</span>Tell us about your story</h2>
+      <section class="card shadow-sm p-4 mb-4" id="story">
+        <h2 class="h5 text-green mb-3"><span class="step-number fs-5 me-2">03</span>Tell us about your story</h2>
         <p class="fw-semibold mb-1">Occasion</p>
         {% include "_choice_list.html" with field=form.occasion_tags inline=True %}
         <p class="fw-semibold mb-1 mt-3">People</p>
@@ -50,6 +47,44 @@
           <div class="col-md-6">{% include "_field.html" with field=form.group_size %}</div>
           <div class="col-md-6">{% include "_field.html" with field=form.event_days %}</div>
         </div>
+
+        <!-- ML recommendation: this button sends the form with name="recommend",
+             so the configure view runs the model instead of adding to the bag. -->
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <button type="submit" name="recommend" value="1" formaction="#story" class="btn btn-blue btn-sm">
+            Recommend a package for me
+          </button>
+          <span class="small text-muted-mm">Not sure how many photos you need? Our model works it out from your answers above.</span>
+        </div>
+        {% if recommend_error %}
+          <div class="text-danger small mt-2">
+            Choose at least one occasion and one people tag, and enter the group size and number of days.
+            Then we can recommend a package.
+          </div>
+        {% endif %}
+        {% if recommendation %}
+          <div class="recommend-box mt-3">
+            Stories like yours usually have about <strong>{{ recommendation.photos }} photos</strong>,
+            so we recommend <strong>{{ recommendation.tier.name }}</strong>
+            ({{ recommendation.tier.min_photos }}–{{ recommendation.tier.max_photos }} photos).
+            It is marked in step 04 below. You can still choose any package.
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="card shadow-sm p-4 mb-4">
+        <h2 class="h5 text-green mb-1"><span class="step-number fs-5 me-2">04</span>Choose your photo package</h2>
+        <p class="small text-muted-mm">You will upload a photo count within this range after checkout.</p>
+        {% for choice in form.tier %}
+          <div class="form-check mb-2">
+            {{ choice.tag }}
+            <label class="form-check-label" for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label>
+            {% if recommendation and choice.data.value.instance == recommendation.tier %}
+              <span class="badge badge-recommended ms-1">Recommended for you</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+        {% for error in form.tier.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
       </section>
 
       <section class="card shadow-sm p-4 mb-4">

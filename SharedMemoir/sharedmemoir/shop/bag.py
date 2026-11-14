@@ -2,9 +2,10 @@ from .models import FORMAT_PRINT, CoverStyle, GiftBox, PackageTier, Tag
 
 BAG_SESSION_KEY = "bag"
 
-def save_bag(request, cleaned):
+def save_bag(request, cleaned, recommended_tier=None, predicted_photos=None):
     """Store the customised book in the session. Only IDs and plain values go in,
-    because the session is saved as JSON."""
+    because the session is saved as JSON.
+    recommended_tier and predicted_photos are the ML model's output (shop/recommender.py)."""
     request.session[BAG_SESSION_KEY] = {
         "cover_id": cleaned["cover"].id,
         "format": cleaned["format"],
@@ -16,6 +17,8 @@ def save_bag(request, cleaned):
         "title": cleaned["title"],
         "gift_box_id": cleaned["gift_box"].id if cleaned["gift_box"] else None,
         "notes": cleaned["notes"],
+        "recommended_tier_id": recommended_tier.id if recommended_tier else None,
+        "predicted_photos": predicted_photos,
     }
 
 
@@ -61,4 +64,6 @@ def get_bag(request):
         "occasion_tags": Tag.objects.filter(pk__in=data["occasion_ids"]),
         "people_tags": Tag.objects.filter(pk__in=data["people_ids"]),
         "price": tier.print_price if is_print else tier.digital_price,
+        # The package the ML model recommended (None if there is no recommendation).
+        "recommended_tier": PackageTier.objects.filter(pk=data.get("recommended_tier_id")).first(),
     }
