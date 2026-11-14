@@ -28,6 +28,9 @@
         <ul class="navbar-nav align-items-lg-center">
           <li class="nav-item"><a class="nav-link" href="{% url 'bag' %}">Bag{% if request.session.bag %} (1){% endif %}</a></li>
           {% if user.is_authenticated %}
+            {% if user.is_staff %}
+              <li class="nav-item"><a class="nav-link fw-semibold text-blue" href="{% url 'staff_dashboard' %}">Studio</a></li>
+            {% endif %}
             <li class="nav-item"><a class="nav-link" href="{% url 'my_orders' %}">My orders</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'profile' %}">Hi, {{ user.username }}</a></li>
             <li class="nav-item">

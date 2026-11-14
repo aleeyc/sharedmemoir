@@ -19,6 +19,7 @@ from django.conf.urls.static import static
 from django.urls import include, path
 
 urlpatterns = [
+    path("staff/", include("staffpanel.urls")),
     path("accounts/", include("accounts.urls")),
     path("", include("orders.urls")),
     path("", include("shop.urls")),
