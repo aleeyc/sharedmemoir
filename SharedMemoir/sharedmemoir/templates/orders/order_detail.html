@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}{{ order.number }} · MEMORA{% endblock %}
+
+{% block content %}
+<a href="{% url 'my_orders' %}" class="small">&larr; Back to my orders</a>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mt-2 mb-4">
+  <div>
+    <p class="eyebrow mb-1">Order {{ order.number }}</p>
+    <h1 class="h2 text-green mb-1">{{ order.title }}</h1>
+    <p class="text-muted-mm mb-0">
+      {{ order.cover.name }} · {{ order.tier.name }} ·
+      {% if order.is_print %}Print + Digital{% else %}Digital{% endif %}
+    </p>
+  </div>
+  <span class="badge status-badge status-{{ order.status }} fs-6">{{ order.get_status_display }}</span>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <!-- Memory book -->
+    <section class="card shadow-sm p-4 mb-4">
+      <h2 class="h5 text-green mb-3">Your memory book</h2>
+      {% if latest %}
+        <div class="pdf-frame mb-3">
+          <iframe src="{{ latest.pdf.url }}" title="{{ order.title }}, {{ latest.label|lower }}"></iframe>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <a href="{{ latest.pdf.url }}" target="_blank" rel="noopener" class="btn btn-outline-dark btn-sm">Open in new tab</a>
+          <a href="{{ latest.pdf.url }}" download class="btn btn-outline-dark btn-sm">Download PDF</a>
+          <span class="small text-muted-mm">{{ latest.label }} · delivered {{ latest.created_at|date:"j M Y" }}</span>
+        </div>
+        {% if latest.note %}<p class="small mt-2 mb-0"><strong>Note from the studio:</strong> {{ latest.note }}</p>{% endif %}
+
+        {% if earlier_versions %}
+          <hr>
+          <p class="small fw-semibold mb-1">Earlier versions</p>
+          {% for version in earlier_versions %}
+            <div class="small">
+              <a href="{{ version.pdf.url }}" target="_blank" rel="noopener">{{ version.label }}</a>
+              · {{ version.created_at|date:"j M Y" }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% else %}
+        <p class="text-muted-mm mb-0">Your PDF will appear here once our studio has designed your book.</p>
+      {% endif %}
+    </section>
+
+    <!-- Timeline -->
+    <section class="card shadow-sm p-4">
+      <h2 class="h5 text-green mb-3">Order timeline</h2>
+      <ul class="list-unstyled mb-0">
+        {% for event in events %}
+          <li class="timeline-item mb-3">
+            <div class="small text-muted-mm">
+              {{ event.created_at|date:"j M Y, H:i" }}
+              {% if event.actor %}· {% if event.actor.is_staff %}MEMORA Studio{% else %}You{% endif %}{% endif %}
+            </div>
+            {{ event.message }}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+
+  <div class="col-lg-4">
+    <!-- Next steps and actions -->
+    <section class="card shadow-sm p-4 mb-4">
+      <h2 class="h5 text-green">Next step</h2>
+      <p class="small">{{ next_step }}</p>
+
+      {% if order.can_edit_photos %}
+        <a href="{% url 'order_photos' order.pk %}" class="btn btn-green w-100 mb-2">Upload photos</a>
+      {% endif %}
+      {% if order.can_cancel %}
+        <a href="{% url 'cancel_order' order.pk %}" class="btn btn-outline-danger btn-sm w-100">Cancel order</a>
+      {% endif %}
+
+      {% if can_accept %}
+        <form method="post" action="{% url 'approve_design' order.pk %}" class="mb-3">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-green w-100">Approve this design</button>
+          <p class="small text-muted-mm mt-1 mb-0">
+            {% if order.is_print %}Once approved, we print your book and pack it in its gift box.{% else %}Once approved, your order is complete.{% endif %}
+          </p>
+        </form>
+      {% endif %}
+
+      {% if can_revise %}
+        <hr>
+        <form method="post" action="{% url 'request_revision' order.pk %}" novalidate>
+          {% csrf_token %}
+          {% include "_field.html" with field=revision_form.details %}
+          <button type="submit" class="btn btn-outline-dark w-100">Request my free revision</button>
+        </form>
+      {% elif order.status == "delivered" and order.revision_used %}
+        <p class="small text-muted-mm mb-0">You've already used your free revision on this order.</p>
+      {% endif %}
+
+      {% if order.status == "revision" and order.revision_request %}
+        <div class="recommend-box small">
+          <strong>Your request:</strong><br>{{ order.revision_request|linebreaksbr }}
+        </div>
+      {% endif %}
+
+      {% if can_receive %}
+        <p class="small mb-1"><strong>{{ order.courier }}</strong> · tracking {{ order.tracking_number }}</p>
+        <form method="post" action="{% url 'confirm_receipt' order.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-green w-100">Confirm I received it</button>
+        </form>
+      {% endif %}
+
+      {% if order.can_review %}
+        <a href="{% url 'review_order' order.pk %}" class="btn btn-green w-100">Write a review</a>
+      {% elif order.has_review %}
+        <div class="rating-stars">{{ order.review.stars }}</div>
+        <div class="small text-muted-mm">You reviewed this book. Thank you!</div>
+      {% endif %}
+    </section>
+
+    <!-- Order details -->
+    <section class="card shadow-sm p-4">
+      <h2 class="h5 text-green">Order details</h2>
+      <dl class="row small mb-0">
+        <dt class="col-5">Amount paid</dt><dd class="col-7">S${{ order.amount|floatformat:2 }}</dd>
+        <dt class="col-5">Ordered</dt><dd class="col-7">{{ order.paid_at|date:"j M Y" }}</dd>
+        <dt class="col-5">Photos</dt>
+        <dd class="col-7"><a href="{% url 'order_photos' order.pk %}">{{ photo_count }} photo{{ photo_count|pluralize }}</a></dd>
+        <dt class="col-5">Occasion</dt><dd class="col-7">{{ order.occasion_tags.all|join:", " }}</dd>
+        <dt class="col-5">People</dt><dd class="col-7">{{ order.people_tags.all|join:", " }}</dd>
+        {% if order.is_print %}
+          <dt class="col-5">Gift box</dt><dd class="col-7">{{ order.gift_box }}</dd>
+          <dt class="col-5">Ship to</dt><dd class="col-7">{{ order.shipping_address }}, Singapore {{ order.shipping_postal_code }}</dd>
+          {% if order.tracking_number %}
+            <dt class="col-5">Tracking</dt><dd class="col-7">{{ order.courier }} · {{ order.tracking_number }}</dd>
+          {% endif %}
+        {% endif %}
+      </dl>
+    </section>
+  </div>
+</div>
+{% endblock %}

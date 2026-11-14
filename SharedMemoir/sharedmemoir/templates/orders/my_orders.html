@@ -23,6 +23,13 @@
       </div>
 
       <div class="col-md-4 d-flex flex-column align-items-md-end gap-2">
+        {% if order.status == "delivered" %}
+          <a href="{% url 'order_detail' order.pk %}" class="btn btn-green btn-sm">Review your PDF</a>
+        {% elif order.status == "shipped" %}
+          <a href="{% url 'order_detail' order.pk %}" class="btn btn-green btn-sm">Confirm delivery</a>
+        {% else %}
+          <a href="{% url 'order_detail' order.pk %}" class="btn btn-outline-dark btn-sm">View order</a>
+        {% endif %}
         {% if order.can_edit_photos %}
           <a href="{% url 'order_photos' order.pk %}" class="btn btn-green btn-sm">
             Upload photos ({{ order.photo_count }}/{{ order.tier.max_photos }})

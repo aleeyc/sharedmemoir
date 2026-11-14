@@ -98,3 +98,13 @@ class PhotoUploadForm(BootstrapFormMixin, forms.Form):
                 f"You can add {space_left} more."
             )
         return images
+
+class RevisionRequestForm(BootstrapFormMixin, forms.Form):
+    details = forms.CharField(
+        min_length=10, max_length=1000,
+        label="What would you like us to change?",
+        widget=forms.Textarea(attrs={
+            "rows": 4,
+            "placeholder": "e.g. Please use the beach photo on the cover and move the group photo to page 2.",
+        }),
+    )

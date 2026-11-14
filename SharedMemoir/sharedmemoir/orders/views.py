@@ -7,9 +7,9 @@ from django.views.decorators.http import require_POST
 
 from shop.bag import clear_bag, get_bag
 
-from .forms import CheckoutForm, PhotoUploadForm, ReviewForm
+from .forms import CheckoutForm, PhotoUploadForm, RevisionRequestForm, ReviewForm
 from .models import Order, OrderPhoto
-from .services import OutOfStock, cancel_and_refund, place_order
+from .services import (OutOfStock, TransitionError, can_transition, cancel_and_refund, place_order, transition)
 
 
 @login_required
@@ -178,3 +178,87 @@ def submit_photos(request, pk):
     order.add_event(f"Customer submitted {count} photos. Production can begin.", actor=request.user)
     messages.success(request, "Your photos have been sent to our studio. We'll start designing your book.")
     return redirect("order_photos", pk=order.pk)
+
+
+# What the customer should do or expect next, for each status
+NEXT_STEPS = {
+    Order.Status.WAITING: "Upload your photos and submit them so our studio can begin.",
+    Order.Status.SUBMITTED: "Your photos are with our studio. Production starts soon.",
+    Order.Status.PRODUCING: "Our studio is designing your memory book.",
+    Order.Status.DELIVERED: "Your PDF is ready. Approve it, or request your one free revision.",
+    Order.Status.REVISION: "Our studio is working on the changes you asked for.",
+    Order.Status.PRINTING: "Your book is being printed and packed in its gift box.",
+    Order.Status.SHIPPED: "Your book is on its way. Let us know once it arrives.",
+    Order.Status.COMPLETED: "This order is complete. Thank you for choosing MEMORA.",
+    Order.Status.CANCELLED: "This order was cancelled and your demo payment refunded.",
+}
+
+
+def _order_page_context(order, user, revision_form=None):
+    versions = list(order.versions.all())  # newest first
+    return {
+        "order": order,
+        "latest": versions[0] if versions else None,
+        "earlier_versions": versions[1:],
+        "events": order.events.select_related("actor"),
+        "photo_count": order.photos.count(),
+        "next_step": NEXT_STEPS.get(order.status, ""),
+        "can_accept": can_transition(order, "accept", user),
+        "can_revise": can_transition(order, "revise", user),
+        "can_receive": can_transition(order, "receive", user),
+        "revision_form": revision_form or RevisionRequestForm(),
+    }
+
+
+@login_required
+def order_detail(request, pk):
+    order = get_object_or_404(Order.objects.select_related("cover", "tier", "gift_box"),
+                              pk=pk, customer=request.user)
+    return render(request, "orders/order_detail.html", _order_page_context(order, request.user))
+
+
+@login_required
+@require_POST
+def request_revision(request, pk):
+    order = get_object_or_404(Order, pk=pk, customer=request.user)
+    form = RevisionRequestForm(request.POST)
+    if not form.is_valid():
+        return render(request, "orders/order_detail.html",
+                      _order_page_context(order, request.user, revision_form=form))
+    try:
+        transition(order, "revise", request.user, "Customer requested their free revision.",
+                   revision_request=form.cleaned_data["details"])
+    except TransitionError as error:
+        messages.error(request, str(error))
+    else:
+        messages.success(request, "Revision requested. Our studio will send you an updated PDF.")
+    return redirect("order_detail", pk=pk)
+
+
+@login_required
+@require_POST
+def approve_design(request, pk):
+    order = get_object_or_404(Order, pk=pk, customer=request.user)
+    try:
+        transition(order, "accept", request.user, "Customer approved the final design.")
+    except TransitionError as error:
+        messages.error(request, str(error))
+    else:
+        if order.is_print:
+            messages.success(request, "Design approved! We're now printing your book.")
+        else:
+            messages.success(request, "Design approved! Your memory book is complete.")
+    return redirect("order_detail", pk=pk)
+
+
+@login_required
+@require_POST
+def confirm_receipt(request, pk):
+    order = get_object_or_404(Order, pk=pk, customer=request.user)
+    try:
+        transition(order, "receive", request.user, "Customer confirmed the book arrived.")
+    except TransitionError as error:
+        messages.error(request, str(error))
+    else:
+        messages.success(request, "Thanks for confirming! We hope you love your book.")
+    return redirect("order_detail", pk=pk)

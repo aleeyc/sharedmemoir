@@ -12,4 +12,8 @@ urlpatterns = [
     path("orders/<int:pk>/photos/submit/", views.submit_photos, name="submit_photos"),
     path("orders/<int:pk>/photos/<int:photo_id>/caption/", views.save_caption, name="save_caption"),
     path("orders/<int:pk>/photos/<int:photo_id>/delete/", views.delete_photo, name="delete_photo"),
+    path("orders/<int:pk>/", views.order_detail, name="order_detail"),
+    path("orders/<int:pk>/revision/", views.request_revision, name="request_revision"),
+    path("orders/<int:pk>/approve/", views.approve_design, name="approve_design"),
+    path("orders/<int:pk>/received/", views.confirm_receipt, name="confirm_receipt"),
 ]

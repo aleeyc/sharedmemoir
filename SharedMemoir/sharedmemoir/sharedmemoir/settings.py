@@ -133,3 +133,4 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 MESSAGE_TAGS = {message_constants.ERROR: "danger"}
+X_FRAME_OPTIONS = "SAMEORIGIN"
