@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Customise your memory book · MEMORA{% endblock %}
+
+{% block content %}
+<p class="eyebrow mb-1">Make it your own</p>
+<h1 class="h2 text-green mb-4">Customise your memory book</h1>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+
+      <section class="card shadow-sm p-4 mb-4">
+        <h2 class="h5 text-green mb-3"><span class="step-number fs-5 me-2">01</span>Choose a cover style</h2>
+        <div class="row g-3">
+          {% for choice in form.cover %}
+            <div class="col-6 col-md-4">
+              <label class="cover-option card h-100 p-2" for="{{ choice.id_for_label }}">
+                <span class="cover-swatch" style="--book-color: {{ choice.data.value.instance.colour }};"></span>
+                <span class="d-flex align-items-center gap-2 mt-2">
+                  {{ choice.tag }}
+                  <span class="small fw-semibold">{{ choice.choice_label }}</span>
+                </span>
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+        {% for error in form.cover.errors %}<div class="text-danger small mt-2">{{ error }}</div>{% endfor %}
+      </section>
+
+      <section class="card shadow-sm p-4 mb-4">
+        <h2 class="h5 text-green mb-3"><span class="step-number fs-5 me-2">02</span>Choose your format</h2>
+        {% include "_choice_list.html" with field=form.format %}
+      </section>
+
+      <section class="card shadow-sm p-4 mb-4">
+        <h2 class="h5 text-green mb-1"><span class="step-number fs-5 me-2">03</span>Choose your photo package</h2>
+        <p class="small text-muted-mm">You will upload a photo count within this range after checkout.</p>
+        {% include "_choice_list.html" with field=form.tier %}
+      </section>
+
+      <section class="card shadow-sm p-4 mb-4">
+        <h2 class="h5 text-green mb-3"><span class="step-number fs-5 me-2">04</span>Tell us about your story</h2>
+        <p class="fw-semibold mb-1">Occasion</p>
+        {% include "_choice_list.html" with field=form.occasion_tags inline=True %}
+        <p class="fw-semibold mb-1 mt-3">People</p>
+        {% include "_choice_list.html" with field=form.people_tags inline=True %}
+        <div class="row mt-3">
+          <div class="col-md-6">{% include "_field.html" with field=form.group_size %}</div>
+          <div class="col-md-6">{% include "_field.html" with field=form.event_days %}</div>
+        </div>
+      </section>
+
+      <section class="card shadow-sm p-4 mb-4">
+        <h2 class="h5 text-green mb-3"><span class="step-number fs-5 me-2">05</span>Finishing touches</h2>
+        {% include "_field.html" with field=form.title %}
+        {% include "_field.html" with field=form.gift_box %}
+        {% include "_field.html" with field=form.notes %}
+      </section>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card shadow-sm p-4 sticky-summary">
+        <div class="book-cover mb-3" style="--book-color: {{ cover.colour }};">
+          <span class="small text-uppercase opacity-75">{{ cover.occasion.name }}</span>
+          <span class="book-title">{{ cover.name }}</span>
+        </div>
+        <ul class="small text-muted-mm ps-3">
+          <li>Studio layout and PDF delivery</li>
+          <li>One free revision</li>
+          <li>Tags, cover and gift box at no extra cost</li>
+        </ul>
+        <button type="submit" class="btn btn-green w-100">Add to bag</button>
+        <a href="{% url 'shop' %}" class="btn btn-link w-100 mt-1">Back to all books</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

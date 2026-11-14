@@ -1,5 +1,13 @@
 from django.db import models
 
+FORMAT_DIGITAL = "digital"
+FORMAT_PRINT = "print"
+FORMAT_CHOICES = [
+    (FORMAT_DIGITAL, "Digital: a PDF to enjoy anywhere"),
+    (FORMAT_PRINT, "Print + Digital: hardcover book, gift box and PDF"),
+]
+
+
 class Tag(models.Model):
     """Occasion tags (Travel, Wedding...) filter cover styles.
     People tags (Family, Friends...) describe who the book is about."""

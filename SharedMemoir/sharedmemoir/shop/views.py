@@ -1,6 +1,11 @@
-from django.shortcuts import render
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
-from .models import CoverStyle, PackageTier, Tag
+from .bag import BAG_SESSION_KEY, bag_initial, clear_bag, get_bag, save_bag
+from .forms import ConfigureForm
+from .models import FORMAT_DIGITAL, CoverStyle, PackageTier, Tag
 
 HOW_IT_WORKS_STEPS = [
     ("Choose & customise", "Pick a cover style, a photo package, digital or print, and tag the occasion and people in your story."),
@@ -60,3 +65,33 @@ def how_it_works(request):
 
 def faq(request):
     return render(request, "shop/faq.html", {"faqs": FAQS})
+
+@login_required
+def configure(request, slug):
+    cover = get_object_or_404(CoverStyle, slug=slug, is_active=True)
+
+    if request.method == "POST":
+        form = ConfigureForm(request.POST)
+        if form.is_valid():
+            save_bag(request, form.cleaned_data)
+            messages.success(request, "Added to your bag.")
+            return redirect("bag")
+    else:
+        stored = request.session.get(BAG_SESSION_KEY)
+        if stored and request.GET.get("edit"):
+            form = ConfigureForm(initial=bag_initial(stored))
+        else:
+            form = ConfigureForm(initial={"cover": cover.id, "format": FORMAT_DIGITAL})
+
+    return render(request, "shop/configure.html", {"form": form, "cover": cover})
+
+
+def bag(request):
+    return render(request, "shop/bag.html", {"bag": get_bag(request)})
+
+
+@require_POST
+def bag_remove(request):
+    clear_bag(request)
+    messages.info(request, "Your bag is now empty.")
+    return redirect("bag")

@@ -1,0 +1,7 @@
+{% for choice in field %}
+  <div class="form-check{% if inline %} form-check-inline{% endif %} mb-2">
+    {{ choice.tag }}
+    <label class="form-check-label" for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label>
+  </div>
+{% endfor %}
+{% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}

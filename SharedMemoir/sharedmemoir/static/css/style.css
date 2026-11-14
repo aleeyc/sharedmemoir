@@ -106,3 +106,15 @@ h1, h2, h3, .serif {
 .price-table th, .price-table td {
   vertical-align: middle;
 }
+
+/* Configurator cover picker */
+.cover-option { cursor: pointer; }
+.cover-option:has(input:checked) { outline: 2px solid var(--mm-green); }
+.cover-swatch {
+  display: block;
+  aspect-ratio: 3 / 4;
+  border-radius: .25rem .5rem .5rem .25rem;
+  background: var(--book-color);
+  box-shadow: inset 6px 0 0 rgba(0, 0, 0, .18);
+}
+.sticky-summary { position: sticky; top: 1rem; }

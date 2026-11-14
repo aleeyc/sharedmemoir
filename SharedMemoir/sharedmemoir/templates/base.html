@@ -26,7 +26,7 @@
         </ul>
 
         <ul class="navbar-nav align-items-lg-center">
-          <li class="nav-item"><a class="nav-link" href="#">Bag</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'bag' %}">Bag{% if request.session.bag %} (1){% endif %}</a></li>
           {% if user.is_authenticated %}
             <li class="nav-item"><a class="nav-link" href="#">My orders</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'profile' %}">Hi, {{ user.username }}</a></li>
