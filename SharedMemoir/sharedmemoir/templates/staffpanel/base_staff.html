@@ -19,7 +19,12 @@
     <li class="nav-item">
       <a class="nav-link {% if '/staff/catalogue/' in request.path %}active{% endif %}" href="{% url 'staff_catalogue' %}">Catalogue</a>
     </li>
-    <li class="nav-item"><a class="nav-link" href="#">Customers</a></li>
+    <li class="nav-item">
+      <a class="nav-link {% if '/staff/customers/' in request.path %}active{% endif %}" href="{% url 'staff_customers' %}">Customers</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% if '/staff/reviews/' in request.path %}active{% endif %}" href="{% url 'staff_reviews' %}">Reviews</a>
+    </li>
   </ul>
 </div>
 {% endwith %}

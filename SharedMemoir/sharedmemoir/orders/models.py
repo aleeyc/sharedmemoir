@@ -130,6 +130,7 @@ class Review(models.Model):
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="review")
     rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES)
     comment = models.TextField(max_length=500, blank=True)
+    is_hidden = models.BooleanField(default=False)  # hide reviews
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

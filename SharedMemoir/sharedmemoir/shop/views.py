@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -49,7 +49,10 @@ def active_covers():
     return (
         CoverStyle.objects.filter(is_active=True)
         .select_related("occasion")
-        .annotate(avg_rating=Avg("order__review__rating"), review_count=Count("order__review"))
+        .annotate(
+            avg_rating=Avg("order__review__rating", filter=Q(order__review__is_hidden=False)),
+            review_count=Count("order__review", filter=Q(order__review__is_hidden=False)),
+        )
         .order_by("name")  # Django ignores the model's default ordering once we annotate
     )
 
@@ -122,7 +125,7 @@ def configure(request, slug):
         else:
             form = ConfigureForm(initial={"cover": cover.id, "format": FORMAT_DIGITAL})
 
-    cover_reviews = Review.objects.filter(order__cover=cover)
+    cover_reviews = Review.objects.filter(order__cover=cover, is_hidden=False)
     return render(request, "shop/configure.html", {
         "form": form,
         "cover": cover,

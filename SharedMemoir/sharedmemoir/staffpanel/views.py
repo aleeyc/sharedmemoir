@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 
-from orders.models import Order
+from orders.models import Order, Review
 from orders.services import TransitionError, can_transition, deliver_pdf, transition
 from shop.models import CoverStyle, GiftBox, PackageTier
 
@@ -234,3 +234,83 @@ def giftbox_stock(request, pk):
     else:
         messages.error(request, f"{box} only has {box.stock} in stock, so you can't remove {-change}.")
     return redirect(reverse("staff_catalogue") + "#gift-boxes")
+
+@staff_required
+def customer_list(request):
+    customers = (
+        User.objects.filter(is_staff=False)
+        .select_related("profile")
+        .annotate(
+            order_count=Count("orders"),
+            total_spent=Sum("orders__amount", filter=~Q(orders__status=Order.Status.CANCELLED)),
+        )
+        .order_by("-date_joined")
+    )
+
+    selected = request.GET.get("status", "")
+    if selected == "active":
+        customers = customers.filter(is_active=True)
+    elif selected == "inactive":
+        customers = customers.filter(is_active=False)
+
+    query = request.GET.get("q", "").strip()
+    if query:
+        customers = customers.filter(
+            Q(username__icontains=query) | Q(email__icontains=query)
+            | Q(profile__full_name__icontains=query) | Q(profile__phone__icontains=query)
+        )
+
+    page = Paginator(customers, 20).get_page(request.GET.get("page"))
+    return render(request, "staffpanel/customer_list.html", {
+        "page": page, "selected_status": selected, "query": query,
+    })
+
+
+@staff_required
+def customer_detail(request, pk):
+    customer = get_object_or_404(User.objects.select_related("profile"), pk=pk, is_staff=False)
+    orders = customer.orders.select_related("cover", "tier").order_by("-created_at")
+    total_spent = orders.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("amount"))["total"] or 0
+    return render(request, "staffpanel/customer_detail.html", {
+        "customer": customer,
+        "profile": getattr(customer, "profile", None),
+        "orders": orders,
+        "total_spent": total_spent,
+        "reviews": Review.objects.filter(order__customer=customer).select_related("order", "order__cover"),
+    })
+
+
+@staff_required
+@require_POST
+def customer_toggle_active(request, pk):
+    customer = get_object_or_404(User, pk=pk, is_staff=False)
+    customer.is_active = not customer.is_active
+    customer.save(update_fields=["is_active"])
+    if customer.is_active:
+        messages.success(request, f"{customer.username}'s account has been reactivated.")
+    else:
+        messages.success(request, f"{customer.username}'s account has been deactivated. They can no longer log in; their orders are kept.")
+    return redirect("staff_customer_detail", pk=pk)
+
+
+@staff_required
+def review_list(request):
+    reviews = Review.objects.select_related("order", "order__cover", "order__customer")
+    selected = request.GET.get("status", "")
+    if selected == "visible":
+        reviews = reviews.filter(is_hidden=False)
+    elif selected == "hidden":
+        reviews = reviews.filter(is_hidden=True)
+    page = Paginator(reviews, 20).get_page(request.GET.get("page"))
+    return render(request, "staffpanel/review_list.html", {"page": page, "selected_status": selected})
+
+
+@staff_required
+@require_POST
+def review_toggle(request, pk):
+    review = get_object_or_404(Review, pk=pk)
+    review.is_hidden = not review.is_hidden
+    review.save(update_fields=["is_hidden"])
+    state = "hidden from the shop" if review.is_hidden else "visible in the shop again"
+    messages.success(request, f"Review for {review.order.number} is now {state}.")
+    return redirect("staff_reviews")

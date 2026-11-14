@@ -1,0 +1,48 @@
+{% extends "staffpanel/base_staff.html" %}
+
+{% block staff_title %}Reviews{% endblock %}
+{% block staff_heading %}Reviews{% endblock %}
+
+{% block staff_content %}
+<div class="d-flex gap-2 mb-4">
+  <a href="?" class="btn btn-outline-secondary btn-sm filter-pill {% if not selected_status %}active{% endif %}">All</a>
+  <a href="?status=visible" class="btn btn-outline-secondary btn-sm filter-pill {% if selected_status == 'visible' %}active{% endif %}">Visible</a>
+  <a href="?status=hidden" class="btn btn-outline-secondary btn-sm filter-pill {% if selected_status == 'hidden' %}active{% endif %}">Hidden</a>
+</div>
+
+{% for review in page %}
+  <div class="card shadow-sm p-3 mb-3 {% if review.is_hidden %}opacity-75{% endif %}">
+    <div class="d-flex flex-wrap justify-content-between gap-2">
+      <div>
+        <span class="rating-stars">{{ review.stars }}</span>
+        <span class="small text-muted-mm">
+          · {{ review.order.cover.name }} ·
+          <a href="{% url 'staff_order_detail' review.order.pk %}">{{ review.order.number }}</a> ·
+          <a href="{% url 'staff_customer_detail' review.order.customer.pk %}">{{ review.order.customer.username }}</a> ·
+          {{ review.created_at|date:"j M Y" }}
+        </span>
+        {% if review.is_hidden %}<span class="badge text-bg-secondary ms-1">Hidden</span>{% endif %}
+        <p class="mb-0 mt-1">{{ review.comment|default:"No comment." }}</p>
+      </div>
+      <form method="post" action="{% url 'staff_review_toggle' review.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm {% if review.is_hidden %}btn-green{% else %}btn-outline-secondary{% endif %}">
+          {% if review.is_hidden %}Show in shop{% else %}Hide from shop{% endif %}
+        </button>
+      </form>
+    </div>
+  </div>
+{% empty %}
+  <div class="card shadow-sm p-5 text-center text-muted-mm">No reviews here yet.</div>
+{% endfor %}
+
+{% if page.has_other_pages %}
+  <nav aria-label="Review pages">
+    <ul class="pagination pagination-sm">
+      {% if page.has_previous %}<li class="page-item"><a class="page-link" href="?{% if selected_status %}status={{ selected_status }}&{% endif %}page={{ page.previous_page_number }}">Previous</a></li>{% endif %}
+      <li class="page-item disabled"><span class="page-link">Page {{ page.number }} of {{ page.paginator.num_pages }}</span></li>
+      {% if page.has_next %}<li class="page-item"><a class="page-link" href="?{% if selected_status %}status={{ selected_status }}&{% endif %}page={{ page.next_page_number }}">Next</a></li>{% endif %}
+    </ul>
+  </nav>
+{% endif %}
+{% endblock %}

@@ -15,4 +15,9 @@ urlpatterns = [
     path("catalogue/covers/<int:pk>/toggle/", views.cover_toggle, name="staff_cover_toggle"),
     path("catalogue/packages/<int:pk>/edit/", views.tier_form, name="staff_tier_edit"),
     path("catalogue/gift-boxes/<int:pk>/stock/", views.giftbox_stock, name="staff_giftbox_stock"),
+    path("customers/", views.customer_list, name="staff_customers"),
+    path("customers/<int:pk>/", views.customer_detail, name="staff_customer_detail"),
+    path("customers/<int:pk>/toggle-active/", views.customer_toggle_active, name="staff_customer_toggle"),
+    path("reviews/", views.review_list, name="staff_reviews"),
+    path("reviews/<int:pk>/toggle/", views.review_toggle, name="staff_review_toggle"),
 ]

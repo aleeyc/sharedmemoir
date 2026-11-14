@@ -1,0 +1,82 @@
+{% extends "staffpanel/base_staff.html" %}
+
+{% block staff_title %}{{ customer.username }}{% endblock %}
+{% block staff_heading %}{{ profile.full_name|default:customer.username }}{% endblock %}
+
+{% block staff_content %}
+<a href="{% url 'staff_customers' %}" class="small">&larr; Back to customers</a>
+
+<div class="row g-4 mt-1">
+  <div class="col-lg-4">
+    <section class="card shadow-sm p-4 mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 text-green mb-0">Profile</h2>
+        {% if customer.is_active %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-secondary">Deactivated</span>{% endif %}
+      </div>
+      <dl class="row small mb-0">
+        <dt class="col-5">Username</dt><dd class="col-7">{{ customer.username }}</dd>
+        <dt class="col-5">Email</dt><dd class="col-7">{{ customer.email|default:"–" }}</dd>
+        <dt class="col-5">Phone</dt><dd class="col-7">{{ profile.phone|default:"–" }}</dd>
+        <dt class="col-5">Age group</dt><dd class="col-7">{{ profile.get_age_group_display|default:"–" }}</dd>
+        <dt class="col-5">Address</dt>
+        <dd class="col-7">{% if profile.address_line %}{{ profile.address_line }}, Singapore {{ profile.postal_code }}{% else %}–{% endif %}</dd>
+        <dt class="col-5">Joined</dt><dd class="col-7">{{ customer.date_joined|date:"j M Y" }}</dd>
+        <dt class="col-5">Last login</dt><dd class="col-7">{{ customer.last_login|date:"j M Y, H:i"|default:"Never" }}</dd>
+        <dt class="col-5">Total spent</dt><dd class="col-7 fw-semibold">S${{ total_spent|floatformat:2 }}</dd>
+      </dl>
+    </section>
+
+    <section class="card shadow-sm p-4">
+      <h2 class="h5 text-green">Account</h2>
+      <form method="post" action="{% url 'staff_customer_toggle' customer.pk %}">
+        {% csrf_token %}
+        {% if customer.is_active %}
+          <p class="small text-muted-mm">Deactivating stops this customer logging in. Their orders and reviews are kept.</p>
+          <button type="submit" class="btn btn-outline-danger w-100">Deactivate account</button>
+        {% else %}
+          <p class="small text-muted-mm">This customer can't log in.</p>
+          <button type="submit" class="btn btn-green w-100">Reactivate account</button>
+        {% endif %}
+      </form>
+    </section>
+  </div>
+
+  <div class="col-lg-8">
+    <section class="card shadow-sm p-4 mb-4">
+      <h2 class="h5 text-green mb-3">Orders ({{ orders|length }})</h2>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead><tr><th>Order</th><th>Package</th><th>Status</th><th>Ordered</th><th class="text-end">Amount</th></tr></thead>
+          <tbody>
+            {% for order in orders %}
+              <tr>
+                <td><a href="{% url 'staff_order_detail' order.pk %}" class="fw-semibold">{{ order.number }}</a><br><span class="small text-muted-mm">{{ order.title }}</span></td>
+                <td class="small">{{ order.cover.name }} · {{ order.tier.name }}</td>
+                <td><span class="badge status-badge status-{{ order.status }}">{{ order.get_status_display }}</span></td>
+                <td class="small">{{ order.created_at|date:"j M Y" }}</td>
+                <td class="text-end">S${{ order.amount|floatformat:2 }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5" class="text-muted-mm">No orders yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card shadow-sm p-4">
+      <h2 class="h5 text-green mb-3">Reviews</h2>
+      {% for review in reviews %}
+        <div class="py-2 {% if not forloop.last %}border-bottom{% endif %}">
+          <span class="rating-stars">{{ review.stars }}</span>
+          <span class="small text-muted-mm">· {{ review.order.cover.name }} · {{ review.order.number }}</span>
+          {% if review.is_hidden %}<span class="badge text-bg-secondary">Hidden</span>{% endif %}
+          <p class="small mb-0">{{ review.comment|default:"No comment." }}</p>
+        </div>
+      {% empty %}
+        <p class="small text-muted-mm mb-0">No reviews yet.</p>
+      {% endfor %}
+    </section>
+  </div>
+</div>
+{% endblock %}
