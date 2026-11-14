@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Payment complete · MEMORA{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <div class="card shadow-sm p-5 text-center">
+      <p class="eyebrow mb-1">Demo payment completed</p>
+      <h1 class="h3 text-green">Thank you, your story begins here</h1>
+      <p class="text-muted-mm mb-4">Order number <strong>{{ order.number }}</strong> · S${{ order.amount|floatformat:2 }} paid</p>
+
+      <div class="text-start section-soft p-4 mb-4">
+        <p class="fw-semibold mb-2">One more step before we start</p>
+        <p class="small mb-0">
+          Upload {{ order.tier.min_photos }}–{{ order.tier.max_photos }} photos from your order page.
+          Our studio begins designing <em>{{ order.title }}</em> as soon as you submit them.
+        </p>
+      </div>
+      <a href="#" class="btn btn-green">Upload my photos</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

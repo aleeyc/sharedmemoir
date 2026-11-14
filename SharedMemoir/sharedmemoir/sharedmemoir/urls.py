@@ -20,6 +20,7 @@ from django.urls import include, path
 
 urlpatterns = [
     path("accounts/", include("accounts.urls")),
+    path("", include("orders.urls")),
     path("", include("shop.urls")),
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

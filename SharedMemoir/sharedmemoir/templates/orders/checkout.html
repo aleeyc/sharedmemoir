@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout · MEMORA{% endblock %}
+
+{% block content %}
+<p class="eyebrow mb-1">Review &amp; pay</p>
+<h1 class="h2 text-green mb-4">Checkout</h1>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <section class="card shadow-sm p-4 mb-4">
+        <h2 class="h5 text-green mb-3">Contact details</h2>
+        {% include "_field.html" with field=form.contact_name %}
+        <div class="row">
+          <div class="col-md-6">{% include "_field.html" with field=form.contact_email %}</div>
+          <div class="col-md-6">{% include "_field.html" with field=form.contact_phone %}</div>
+        </div>
+      </section>
+
+      {% if bag.is_print %}
+        <section class="card shadow-sm p-4 mb-4">
+          <h2 class="h5 text-green mb-3">Shipping address</h2>
+          {% include "_field.html" with field=form.shipping_address %}
+          <div class="col-md-5">{% include "_field.html" with field=form.shipping_postal_code %}</div>
+          <p class="small text-muted-mm mb-0">Your book and gift box are shipped to one address within Singapore.</p>
+        </section>
+      {% else %}
+        <p class="small text-muted-mm mb-4">No shipping address needed: digital orders are delivered as a PDF on your order page.</p>
+      {% endif %}
+
+      <section class="card shadow-sm p-4">
+        <h2 class="h5 text-green mb-2">Demo payment</h2>
+        <p class="small text-muted-mm">No payment is taken and no card details are required.</p>
+        <div class="form-check">
+          {{ form.agree }}
+          <label class="form-check-label" for="{{ form.agree.id_for_label }}">{{ form.agree.label }}</label>
+        </div>
+        {% for error in form.agree.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+      </section>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card shadow-sm p-4 sticky-summary">
+        <h2 class="h5 text-green">Order summary</h2>
+        <div class="d-flex gap-3 align-items-center my-3">
+          <div class="cover-swatch" style="--book-color: {{ bag.cover.colour }}; width: 64px;"></div>
+          <div>
+            <div class="fw-semibold">{{ bag.title }}</div>
+            <div class="small text-muted-mm">{{ bag.cover.name }} · {{ bag.tier.name }}</div>
+            <div class="small text-muted-mm">{% if bag.is_print %}Print + Digital · {{ bag.gift_box }}{% else %}Digital{% endif %}</div>
+          </div>
+        </div>
+        <hr>
+        <div class="d-flex justify-content-between fw-semibold fs-5 mb-3">
+          <span>Total</span><span>S${{ bag.price|floatformat:2 }}</span>
+        </div>
+        <button type="submit" class="btn btn-green w-100">Pay S${{ bag.price|floatformat:2 }} (demo)</button>
+        <a href="{% url 'bag' %}" class="btn btn-link w-100 mt-1">Back to bag</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
