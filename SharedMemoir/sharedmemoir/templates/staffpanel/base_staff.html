@@ -13,7 +13,9 @@
     <li class="nav-item">
       <a class="nav-link {% if current == 'staff_dashboard' %}active{% endif %}" href="{% url 'staff_dashboard' %}">Dashboard</a>
     </li>
-    <li class="nav-item"><a class="nav-link" href="#">Orders</a></li>
+    <li class="nav-item">
+      <a class="nav-link {% if 'staff_order' in current %}active{% endif %}" href="{% url 'staff_orders' %}">Orders</a>
+    </li>
     <li class="nav-item"><a class="nav-link" href="#">Catalogue</a></li>
     <li class="nav-item"><a class="nav-link" href="#">Customers</a></li>
   </ul>

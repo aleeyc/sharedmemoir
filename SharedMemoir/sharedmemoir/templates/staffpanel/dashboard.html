@@ -20,7 +20,7 @@
   </div>
   <div class="col-6 col-lg-3">
     <div class="card kpi-card shadow-sm p-3 h-100 {% if needs_action %}kpi-attention{% endif %}">
-      <div class="small text-muted-mm">Need studio action</div>
+      <a href="{% url 'staff_orders' %}?status=action" class="small text-muted-mm stretched-link">Need studio action</a>
       <div class="kpi-value">{{ needs_action }}</div>
     </div>
   </div>
@@ -45,7 +45,7 @@
           <tbody>
             {% for order in recent_orders %}
               <tr>
-                <td><span class="fw-semibold">{{ order.number }}</span><br><span class="small text-muted-mm">{{ order.title }}</span></td>
+                <td><a href="{% url 'staff_order_detail' order.pk %}" class="fw-semibold">{{ order.number }}</a><br><span class="small text-muted-mm">{{ order.title }}</span></td>
                 <td>{{ order.customer.username }}</td>
                 <td class="small">{{ order.tier.name }} · {% if order.is_print %}Print{% else %}Digital{% endif %}</td>
                 <td><span class="badge status-badge status-{{ order.status }}">{{ order.get_status_display }}</span></td>

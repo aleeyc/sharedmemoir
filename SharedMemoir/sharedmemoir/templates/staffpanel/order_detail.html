@@ -1,0 +1,112 @@
+{% extends "staffpanel/base_staff.html" %}
+
+{% block staff_title %}{{ order.number }}{% endblock %}
+{% block staff_heading %}{{ order.number }} · {{ order.title }}{% endblock %}
+
+{% block staff_content %}
+<a href="{% url 'staff_orders' %}" class="small">&larr; Back to all orders</a>
+
+<div class="row g-4 mt-1">
+  <div class="col-lg-8">
+    <!-- Photos -->
+    <section class="card shadow-sm p-4 mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 text-green mb-0">Customer photos</h2>
+        <span class="small text-muted-mm">{{ photos|length }} photos · package {{ order.tier.min_photos }}–{{ order.tier.max_photos }}</span>
+      </div>
+      <div class="row g-3">
+        {% for photo in photos %}
+          <div class="col-6 col-md-4">
+            <a href="{{ photo.image.url }}" target="_blank" rel="noopener">
+              <img src="{{ photo.image.url }}" alt="Photo {{ forloop.counter }}" class="photo-thumb">
+            </a>
+            <p class="small mt-1 mb-0">{{ photo.caption|default:"No caption" }}</p>
+          </div>
+        {% empty %}
+          <p class="small text-muted-mm mb-0">The customer hasn't uploaded any photos yet.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Studio briefing -->
+    <section class="card shadow-sm p-4 mb-4">
+      <h2 class="h5 text-green mb-3">Design brief</h2>
+      <dl class="row small mb-0">
+        <dt class="col-4">Cover style</dt><dd class="col-8">{{ order.cover.name }}</dd>
+        <dt class="col-4">Occasion</dt><dd class="col-8">{{ order.occasion_tags.all|join:", " }}</dd>
+        <dt class="col-4">People</dt><dd class="col-8">{{ order.people_tags.all|join:", " }}</dd>
+        <dt class="col-4">Group · days</dt><dd class="col-8">{{ order.group_size }} people · {{ order.event_days }} day{{ order.event_days|pluralize }}</dd>
+        <dt class="col-4">Customer's note</dt><dd class="col-8">{{ order.notes|default:"No additional notes."|linebreaksbr }}</dd>
+      </dl>
+    </section>
+
+    <!-- Timeline -->
+    <section class="card shadow-sm p-4">
+      <h2 class="h5 text-green mb-3">Order timeline</h2>
+      <ul class="list-unstyled mb-0">
+        {% for event in events %}
+          <li class="timeline-item mb-3">
+            <div class="small text-muted-mm">
+              {{ event.created_at|date:"j M Y, H:i" }}
+              {% if event.actor %}· {% if event.actor.is_staff %}Studio ({{ event.actor.username }}){% else %}Customer{% endif %}{% endif %}
+            </div>
+            {{ event.message }}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+
+  <div class="col-lg-4">
+    <!-- Status and actions -->
+    <section class="card shadow-sm p-4 mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h5 text-green mb-0">Status</h2>
+        <span class="badge status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
+      </div>
+      <p class="small text-muted-mm mb-0">Studio actions for this order will appear here.</p>
+    </section>
+
+    <!-- Customer and payment -->
+    <section class="card shadow-sm p-4 mb-4">
+      <h2 class="h5 text-green mb-3">Customer &amp; payment</h2>
+      <dl class="row small mb-0">
+        <dt class="col-5">Customer</dt><dd class="col-7">{{ order.contact_name }} ({{ order.customer.username }})</dd>
+        <dt class="col-5">Email</dt><dd class="col-7">{{ order.contact_email }}</dd>
+        <dt class="col-5">Phone</dt><dd class="col-7">{{ order.contact_phone }}</dd>
+        <dt class="col-5">Package</dt><dd class="col-7">{{ order.tier.name }} · {% if order.is_print %}Print + Digital{% else %}Digital{% endif %}</dd>
+        <dt class="col-5">Paid</dt><dd class="col-7">S${{ order.amount|floatformat:2 }} on {{ order.paid_at|date:"j M Y" }}</dd>
+        <dt class="col-5">Revision</dt><dd class="col-7">{% if order.revision_used %}Free revision used{% else %}Not used{% endif %}</dd>
+      </dl>
+    </section>
+
+    <!-- ML recommendation for this order -->
+    <section class="card shadow-sm p-4 mb-4">
+      <h2 class="h5 text-green mb-2">Package recommendation</h2>
+      {% if order.recommended_tier %}
+        <p class="small mb-1">Model predicted about <strong>{{ order.predicted_photos }} photos</strong> and recommended <strong>{{ order.recommended_tier.name }}</strong>.</p>
+        <p class="small mb-0 {% if order.followed_recommendation %}text-success{% else %}text-muted-mm{% endif %}">
+          {% if order.followed_recommendation %}The customer followed the recommendation.{% else %}The customer chose {{ order.tier.name }} instead.{% endif %}
+        </p>
+      {% else %}
+        <p class="small text-muted-mm mb-0">No recommendation was recorded for this order.</p>
+      {% endif %}
+    </section>
+
+    <!-- Shipping for print orders -->
+    {% if order.is_print %}
+      <section class="card shadow-sm p-4">
+        <h2 class="h5 text-green mb-3">Shipping</h2>
+        <dl class="row small mb-0">
+          <dt class="col-5">Gift box</dt><dd class="col-7">{{ order.gift_box }}</dd>
+          <dt class="col-5">Address</dt><dd class="col-7">{{ order.shipping_address }}, Singapore {{ order.shipping_postal_code }}</dd>
+          {% if order.tracking_number %}
+            <dt class="col-5">Courier</dt><dd class="col-7">{{ order.courier }}</dd>
+            <dt class="col-5">Tracking</dt><dd class="col-7">{{ order.tracking_number }}</dd>
+          {% endif %}
+        </dl>
+      </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -165,3 +165,4 @@ h1, h2, h3, .serif {
 .staff-nav .nav-link.active { background: var(--mm-green); color: #fff; }
 .kpi-value { font-family: Georgia, serif; font-size: 1.75rem; color: var(--mm-green); }
 .kpi-attention { border-left: 4px solid var(--mm-blue); }
+.timeline-item { border-left: 2px solid var(--mm-line); padding-left: .75rem; }
