@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}My orders · MEMORA{% endblock %}
+
+{% block content %}
+<p class="eyebrow mb-1">My account</p>
+<h1 class="h2 text-green mb-4">My orders</h1>
+
+{% for order in orders %}
+  <div class="card shadow-sm p-4 mb-3">
+    <div class="row g-3 align-items-center">
+      <div class="col-3 col-md-1">
+        <div class="cover-swatch" style="--book-color: {{ order.cover.colour }};"></div>
+      </div>
+
+      <div class="col-9 col-md-7">
+        <h2 class="h5 mb-1">{{ order.title }}</h2>
+        <p class="small text-muted-mm mb-2">
+          {{ order.number }} · {{ order.created_at|date:"j M Y" }} · {{ order.cover.name }} · {{ order.tier.name }} ·
+          {% if order.is_print %}Print + Digital{% else %}Digital{% endif %} · S${{ order.amount|floatformat:2 }}
+        </p>
+        <span class="badge status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
+      </div>
+
+      <div class="col-md-4 text-md-end">
+        {% if order.can_cancel %}
+          <a href="{% url 'cancel_order' order.pk %}" class="btn btn-outline-danger btn-sm">Cancel order</a>
+        {% endif %}
+
+        {% if order.can_review %}
+          <a href="{% url 'review_order' order.pk %}" class="btn btn-green btn-sm">Write a review</a>
+        {% elif order.has_review %}
+          <div class="rating-stars">{{ order.review.stars }}</div>
+          <div class="small text-muted-mm">You reviewed this book</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% empty %}
+  <div class="card shadow-sm p-5 text-center">
+    <h2 class="h4 text-green">No orders yet</h2>
+    <p class="text-muted-mm">Your memory books will appear here after checkout.</p>
+    <div><a href="{% url 'shop' %}" class="btn btn-green">Explore memory books</a></div>
+  </div>
+{% endfor %}
+{% endblock %}

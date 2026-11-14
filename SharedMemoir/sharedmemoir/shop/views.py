@@ -1,7 +1,10 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Avg, Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+
+from orders.models import Review
 
 from .bag import BAG_SESSION_KEY, bag_initial, clear_bag, get_bag, save_bag
 from .forms import ConfigureForm, StoryForm
@@ -41,13 +44,22 @@ FAQS = [
 ]
 
 
+def active_covers():
+    """Active cover styles, each with its average rating and number of reviews."""
+    return (
+        CoverStyle.objects.filter(is_active=True)
+        .select_related("occasion")
+        .annotate(avg_rating=Avg("order__review__rating"), review_count=Count("order__review"))
+        .order_by("name")  # Django ignores the model's default ordering once we annotate
+    )
+
+
 def home(request):
-    covers = CoverStyle.objects.filter(is_active=True).select_related("occasion")
-    return render(request, "home.html", {"covers": covers})
+    return render(request, "home.html", {"covers": active_covers()})
 
 
 def shop(request):
-    covers = CoverStyle.objects.filter(is_active=True).select_related("occasion")
+    covers = active_covers()
     selected_occasion = request.GET.get("occasion", "")
     if selected_occasion:
         covers = covers.filter(occasion__name=selected_occasion)
@@ -110,11 +122,14 @@ def configure(request, slug):
         else:
             form = ConfigureForm(initial={"cover": cover.id, "format": FORMAT_DIGITAL})
 
+    cover_reviews = Review.objects.filter(order__cover=cover)
     return render(request, "shop/configure.html", {
         "form": form,
         "cover": cover,
         "recommendation": recommendation,
         "recommend_error": recommend_error,
+        "reviews": cover_reviews.select_related("order")[:3],  # the 3 newest
+        "rating_summary": cover_reviews.aggregate(average=Avg("rating"), count=Count("id")),
     })
 
 

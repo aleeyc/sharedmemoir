@@ -44,3 +44,21 @@ def place_order(user, bag, data):
     order.people_tags.set(bag["people_tags"])
     order.add_event("Order placed and demo payment completed.", actor=user)
     return order
+
+
+@transaction.atomic
+def cancel_and_refund(order, user):
+    """Cancel an order that is still waiting for photos and put its gift box back in stock.
+    Returns False if the order has moved on and can no longer be cancelled."""
+    # Only change the status if it is still "waiting". This also stops a double click
+    # from cancelling twice and returning two gift boxes to stock.
+    updated = Order.objects.filter(pk=order.pk, status=Order.Status.WAITING).update(
+        status=Order.Status.CANCELLED, updated_at=timezone.now(),
+    )
+    if updated == 0:
+        return False
+
+    if order.gift_box_id:
+        GiftBox.objects.filter(pk=order.gift_box_id).update(stock=F("stock") + 1)
+    order.add_event("Order cancelled by the customer. Full refund issued (demo).", actor=user)
+    return True

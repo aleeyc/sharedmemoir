@@ -130,3 +130,21 @@ h1, h2, h3, .serif {
   background: var(--mm-blue);
   color: #fff;
 }
+
+/* Order status and reviews */
+.status-badge {
+  background: var(--mm-blue-light);
+  color: var(--mm-blue);
+}
+.status-badge.status-completed {
+  background: var(--mm-green-light);
+  color: var(--mm-green);
+}
+.status-badge.status-cancelled {
+  background: var(--mm-line);
+  color: var(--mm-muted);
+}
+.rating-stars {
+  color: #c9a227;
+  letter-spacing: .05em;
+}

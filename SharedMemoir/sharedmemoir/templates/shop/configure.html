@@ -112,4 +112,29 @@
     </div>
   </div>
 </form>
+
+<!-- Reviews of this cover style -->
+<section class="mt-5">
+  <p class="eyebrow mb-1">Customer reviews</p>
+  <h2 class="h4 text-green mb-3">What customers say about {{ cover.name }}</h2>
+  {% if rating_summary.count %}
+    <p class="mb-3">
+      <span class="rating-stars">★</span> <strong>{{ rating_summary.average|floatformat:1 }}</strong> out of 5
+      · {{ rating_summary.count }} review{{ rating_summary.count|pluralize }}
+    </p>
+    <div class="row g-3">
+      {% for review in reviews %}
+        <div class="col-md-4">
+          <div class="card h-100 p-3">
+            <div class="rating-stars">{{ review.stars }}</div>
+            <p class="small my-2">{{ review.comment|default:"No written comment." }}</p>
+            <p class="small text-muted-mm mb-0">{{ review.reviewer_name }} · {{ review.created_at|date:"j M Y" }}</p>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted-mm">No reviews yet. Be the first to share your story.</p>
+  {% endif %}
+</section>
 {% endblock %}

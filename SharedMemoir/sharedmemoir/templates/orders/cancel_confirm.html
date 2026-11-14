@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Cancel order · MEMORA{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <div class="card shadow-sm p-4">
+      <p class="eyebrow mb-1">Cancel order</p>
+      <h1 class="h3 text-green">Cancel {{ order.number }}?</h1>
+      <p class="text-muted-mm">
+        {{ order.title }} · {{ order.tier.name }} ·
+        {% if order.is_print %}Print + Digital{% else %}Digital{% endif %}
+      </p>
+      <p>
+        You have not submitted your photos yet, so you will receive a full refund of
+        <strong>S${{ order.amount|floatformat:2 }}</strong> (demo: no real money is moved).
+        This cannot be undone.
+      </p>
+      <form method="post" class="d-flex gap-2">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, cancel my order</button>
+        <a href="{% url 'my_orders' %}" class="btn btn-outline-dark">Keep my order</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

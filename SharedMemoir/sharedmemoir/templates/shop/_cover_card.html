@@ -8,7 +8,15 @@
     </div>
     <div class="card-body pt-0">
       <h3 class="h5 mb-1">{{ cover.name }}</h3>
-      <p class="text-muted-mm small mb-3">{{ cover.subtitle }}</p>
+      <p class="text-muted-mm small mb-1">{{ cover.subtitle }}</p>
+      <p class="small mb-3">
+        {% if cover.review_count %}
+          <span class="rating-stars">★</span> {{ cover.avg_rating|floatformat:1 }}
+          <span class="text-muted-mm">({{ cover.review_count }} review{{ cover.review_count|pluralize }})</span>
+        {% else %}
+          <span class="text-muted-mm">No reviews yet</span>
+        {% endif %}
+      </p>
       <a href="{% url 'configure' cover.slug %}" class="btn btn-green btn-sm">Customise</a>
     </div>
   </div>

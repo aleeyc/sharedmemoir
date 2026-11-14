@@ -72,6 +72,20 @@ class Order(models.Model):
         """True if the customer bought the package the ML model recommended."""
         return self.recommended_tier_id == self.tier_id
 
+    @property
+    def can_cancel(self):
+        """Customers can cancel for a full refund until they submit their photos."""
+        return self.status == self.Status.WAITING
+
+    @property
+    def has_review(self):
+        return hasattr(self, "review")
+
+    @property
+    def can_review(self):
+        """Customers can review an order once it is completed, and only once."""
+        return self.status == self.Status.COMPLETED and not self.has_review
+
     def add_event(self, message, actor=None):
         """Record a step in this order's timeline."""
         return self.events.create(message=message, actor=actor)
@@ -93,3 +107,37 @@ class OrderEvent(models.Model):
 
     def __str__(self):
         return f"{self.order.number}: {self.message}"
+
+
+class Review(models.Model):
+    """A customer's rating of a completed order. Shown on the shop pages for that cover style."""
+
+    RATING_CHOICES = [
+        (5, "★★★★★ Loved it"),
+        (4, "★★★★☆ Really good"),
+        (3, "★★★☆☆ It was okay"),
+        (2, "★★☆☆☆ Disappointing"),
+        (1, "★☆☆☆☆ Poor"),
+    ]
+
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="review")
+    rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES)
+    comment = models.TextField(max_length=500, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    @property
+    def stars(self):
+        """For example 4 becomes ★★★★☆."""
+        return "★" * self.rating + "☆" * (5 - self.rating)
+
+    @property
+    def reviewer_name(self):
+        """Only the first name is shown publicly."""
+        names = self.order.contact_name.split()
+        return names[0] if names else "A customer"
+
+    def __str__(self):
+        return f"{self.order.number}: {self.rating} stars"
