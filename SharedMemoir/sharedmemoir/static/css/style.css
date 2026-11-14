@@ -118,3 +118,15 @@ h1, h2, h3, .serif {
   box-shadow: inset 6px 0 0 rgba(0, 0, 0, .18);
 }
 .sticky-summary { position: sticky; top: 1rem; }
+
+/* ML package recommendation */
+.recommend-box {
+  background: var(--mm-blue-light);
+  border-left: 4px solid var(--mm-blue);
+  border-radius: .5rem;
+  padding: .75rem 1rem;
+}
+.badge-recommended {
+  background: var(--mm-blue);
+  color: #fff;
+}

@@ -31,6 +31,13 @@ class Order(models.Model):
     group_size = models.PositiveSmallIntegerField()
     event_days = models.PositiveSmallIntegerField()
 
+    # What the ML model suggested for this story when the order was placed (shop/recommender.py)
+    predicted_photos = models.PositiveSmallIntegerField(null=True, blank=True)
+    recommended_tier = models.ForeignKey(
+        PackageTier, on_delete=models.PROTECT, null=True, blank=True,
+        related_name="recommended_orders",
+    )
+
     # Payment and status info
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.WAITING)
@@ -59,6 +66,11 @@ class Order(models.Model):
     @property
     def is_print(self):
         return self.format == FORMAT_PRINT
+
+    @property
+    def followed_recommendation(self):
+        """True if the customer bought the package the ML model recommended."""
+        return self.recommended_tier_id == self.tier_id
 
     def add_event(self, message, actor=None):
         """Record a step in this order's timeline."""

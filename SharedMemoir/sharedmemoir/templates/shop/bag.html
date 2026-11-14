@@ -7,6 +7,17 @@
 <h1 class="h2 text-green mb-4">Your bag</h1>
 
 {% if bag %}
+<!-- ML recommendation: shown only when the customer chose a different package from the model's. -->
+{% if bag.recommended_tier and bag.recommended_tier != bag.tier %}
+  <div class="recommend-box mb-4">
+    <strong>A tip before you pay.</strong>
+    Stories like yours usually have about {{ bag.predicted_photos }} photos. That fits our
+    <strong>{{ bag.recommended_tier.name }}</strong> package
+    ({{ bag.recommended_tier.min_photos }}–{{ bag.recommended_tier.max_photos }} photos) better than
+    {{ bag.tier.name }} ({{ bag.tier.min_photos }}–{{ bag.tier.max_photos }} photos).
+    <a href="{% url 'configure' bag.cover.slug %}?edit=1#story" class="fw-semibold">Change package</a>
+  </div>
+{% endif %}
 <div class="row g-4">
   <div class="col-lg-8">
     <div class="card shadow-sm p-4">

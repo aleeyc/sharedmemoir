@@ -10,16 +10,10 @@ class TierChoiceField(forms.ModelChoiceField):
                 f"Digital S${tier.digital_price:.0f} / Print S${tier.print_price:.0f}")
 
 
-class ConfigureForm(BootstrapFormMixin, forms.Form):
-    cover = forms.ModelChoiceField(
-        queryset=CoverStyle.objects.filter(is_active=True),
-        widget=forms.RadioSelect, empty_label=None, label="Cover style",
-    )
-    format = forms.ChoiceField(choices=FORMAT_CHOICES, widget=forms.RadioSelect, label="Format")
-    tier = TierChoiceField(
-        queryset=PackageTier.objects.filter(is_active=True),
-        widget=forms.RadioSelect, empty_label=None, label="Photo package",
-    )
+class StoryForm(BootstrapFormMixin, forms.Form):
+    """The four answers about the customer's story.
+    These are exactly the inputs of the ML model (see shop/recommender.py)."""
+
     occasion_tags = forms.ModelMultipleChoiceField(
         queryset=Tag.objects.filter(kind=Tag.OCCASION),
         widget=forms.CheckboxSelectMultiple, label="Occasion",
@@ -32,6 +26,20 @@ class ConfigureForm(BootstrapFormMixin, forms.Form):
     )
     group_size = forms.IntegerField(min_value=1, max_value=50, label="How many people are in this story?")
     event_days = forms.IntegerField(min_value=1, max_value=60, label="How many days did it span?")
+
+
+class ConfigureForm(StoryForm):
+    """The whole customise page: the story answers above plus the fields below."""
+
+    cover = forms.ModelChoiceField(
+        queryset=CoverStyle.objects.filter(is_active=True),
+        widget=forms.RadioSelect, empty_label=None, label="Cover style",
+    )
+    format = forms.ChoiceField(choices=FORMAT_CHOICES, widget=forms.RadioSelect, label="Format")
+    tier = TierChoiceField(
+        queryset=PackageTier.objects.filter(is_active=True),
+        widget=forms.RadioSelect, empty_label=None, label="Photo package",
+    )
     title = forms.CharField(
         max_length=80, label="Give your book a title",
         widget=forms.TextInput(attrs={"placeholder": "For example: Our Graduation Trip"}),

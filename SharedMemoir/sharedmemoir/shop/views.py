@@ -4,8 +4,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .bag import BAG_SESSION_KEY, bag_initial, clear_bag, get_bag, save_bag
-from .forms import ConfigureForm
+from .forms import ConfigureForm, StoryForm
 from .models import FORMAT_DIGITAL, CoverStyle, PackageTier, Tag
+from .recommender import recommend_tier
 
 HOW_IT_WORKS_STEPS = [
     ("Choose & customise", "Pick a cover style, a photo package, digital or print, and tag the occasion and people in your story."),
@@ -69,21 +70,52 @@ def faq(request):
 @login_required
 def configure(request, slug):
     cover = get_object_or_404(CoverStyle, slug=slug, is_active=True)
+    recommendation = None      # filled in when the ML model has recommended a package
+    recommend_error = False
 
-    if request.method == "POST":
+    if request.method == "POST" and "recommend" in request.POST:
+        # The customer pressed "Recommend a package for me".
+        # Keep everything they have typed so far, so nothing is lost when the page reloads.
+        initial = request.POST.dict()
+        initial["occasion_tags"] = request.POST.getlist("occasion_tags")
+        initial["people_tags"] = request.POST.getlist("people_tags")
+
+        # Only the four story answers are needed for a recommendation.
+        story_form = StoryForm(request.POST)
+        if story_form.is_valid():
+            tier, photos = recommend_tier(story_form.cleaned_data)
+            if tier:
+                initial["tier"] = tier.id   # select the recommended package for the customer
+                recommendation = {"tier": tier, "photos": photos}
+        else:
+            recommend_error = True
+        form = ConfigureForm(initial=initial)
+
+    elif request.method == "POST":
         form = ConfigureForm(request.POST)
         if form.is_valid():
-            save_bag(request, form.cleaned_data)
+            # Run the model on the final answers and keep its recommendation with the bag.
+            tier, photos = recommend_tier(form.cleaned_data)
+            save_bag(request, form.cleaned_data, tier, photos)
             messages.success(request, "Added to your bag.")
             return redirect("bag")
     else:
         stored = request.session.get(BAG_SESSION_KEY)
         if stored and request.GET.get("edit"):
             form = ConfigureForm(initial=bag_initial(stored))
+            # Show again which package the model recommended for this bag.
+            tier = PackageTier.objects.filter(pk=stored.get("recommended_tier_id")).first()
+            if tier:
+                recommendation = {"tier": tier, "photos": stored["predicted_photos"]}
         else:
             form = ConfigureForm(initial={"cover": cover.id, "format": FORMAT_DIGITAL})
 
-    return render(request, "shop/configure.html", {"form": form, "cover": cover})
+    return render(request, "shop/configure.html", {
+        "form": form,
+        "cover": cover,
+        "recommendation": recommendation,
+        "recommend_error": recommend_error,
+    })
 
 
 def bag(request):
